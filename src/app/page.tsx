@@ -1,19 +1,19 @@
 'use client';
 
-import { useMemo, useEffect, useCallback, useState } from 'react';
+import { useMemo, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
-  Volume2, VolumeX, Heart, Music2, Maximize2, Minimize2, ChevronDown,
+  Volume2, VolumeX, Heart, Music2, Maximize2, ChevronDown,
   Mic2, ListMusic,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAppStore, usePlayerStore } from '@/stores/app-store';
 import { formatDuration, formatPlayCount } from '@/lib/asaas';
-import { mockLiveStreams, mockSongs, mockPodcasts } from '@/lib/mock-data';
+import { mockLiveStreams, mockPodcasts } from '@/lib/mock-data';
+import type { UserType } from '@/types';
 
 import LandingPage from '@/components/landing/LandingPage';
 import AuthModal from '@/components/landing/AuthModal';
@@ -26,6 +26,48 @@ import PlaylistView from '@/components/app/PlaylistView';
 import ArtistView from '@/components/app/ArtistView';
 import AdminPanel from '@/components/admin/AdminPanel';
 import CreatorPanel from '@/components/creator/CreatorPanel';
+
+// ===== DEMO USERS =====
+const DEMO_USERS: Record<string, UserType> = {
+  user: {
+    id: 'u1',
+    email: 'user@soundflow.com',
+    name: 'Usuário Demo',
+    username: 'user_demo',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop',
+    role: 'free',
+    plan: 'free',
+    isVerified: true,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  admin: {
+    id: 'u_admin',
+    email: 'admin@soundflow.com',
+    name: 'Admin SoundFlow',
+    username: 'admin_soundflow',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+    role: 'admin',
+    plan: 'premium_individual',
+    isVerified: true,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+};
+
+// ===== ROLE PERMISSIONS =====
+export const ROLE_PERMISSIONS: Record<string, string[]> = {
+  free: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile'],
+  premium: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile'],
+  creator: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile', 'creator'],
+  moderator: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile', 'admin'],
+  admin: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile', 'admin', 'creator'],
+};
+
+function canAccess(role: string, view: string): boolean {
+  const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.free;
+  return permissions.includes(view);
+}
 
 // ===== PLAYER BAR =====
 function PlayerBar() {
@@ -42,7 +84,6 @@ function PlayerBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-gray-950/95 backdrop-blur-xl">
-      {/* Progress Bar */}
       <div
         className="h-1 w-full bg-gray-800 cursor-pointer group"
         onClick={(e) => {
@@ -58,7 +99,6 @@ function PlayerBar() {
       </div>
 
       <div className="flex items-center h-[72px] px-3 sm:px-4">
-        {/* Song Info */}
         <div className="flex items-center gap-3 w-[30%] min-w-0">
           <Avatar className="h-12 w-12 rounded-md shrink-0">
             <AvatarImage src={currentSong.coverUrl} alt={currentSong.title} />
@@ -79,83 +119,41 @@ function PlayerBar() {
           </Button>
         </div>
 
-        {/* Controls */}
         <div className="flex flex-col items-center gap-1 w-[40%]">
           <div className="flex items-center gap-1 sm:gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-8 w-8 hidden sm:flex ${shuffle ? 'text-emerald-400' : 'text-gray-400 hover:text-white'}`}
-              onClick={toggleShuffle}
-            >
+            <Button variant="ghost" size="icon" className={`h-8 w-8 hidden sm:flex ${shuffle ? 'text-emerald-400' : 'text-gray-400 hover:text-white'}`} onClick={toggleShuffle}>
               <Shuffle className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={prevSong}>
               <SkipBack className="h-4 w-4" fill="currentColor" />
             </Button>
-            <Button
-              size="icon"
-              className="h-10 w-10 rounded-full bg-white text-gray-900 hover:scale-105 transition-transform shadow-lg"
-              onClick={togglePlay}
-            >
+            <Button size="icon" className="h-10 w-10 rounded-full bg-white text-gray-900 hover:scale-105 transition-transform shadow-lg" onClick={togglePlay}>
               {isPlaying ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 ml-0.5" fill="currentColor" />}
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={nextSong}>
               <SkipForward className="h-4 w-4" fill="currentColor" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`h-8 w-8 hidden sm:flex ${repeat !== 'none' ? 'text-emerald-400' : 'text-gray-400 hover:text-white'}`}
-              onClick={toggleRepeat}
-            >
+            <Button variant="ghost" size="icon" className={`h-8 w-8 hidden sm:flex ${repeat !== 'none' ? 'text-emerald-400' : 'text-gray-400 hover:text-white'}`} onClick={toggleRepeat}>
               {repeat === 'one' ? <Repeat1 className="h-4 w-4" /> : <Repeat className="h-4 w-4" />}
             </Button>
           </div>
           <div className="hidden sm:flex items-center gap-2 w-full max-w-lg text-xs text-gray-400">
             <span className="w-10 text-right">{formatDuration(progress)}</span>
-            <Slider
-              value={[progressPercent]}
-              max={100}
-              step={0.1}
-              className="flex-1 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:bg-emerald-400 [&_[role=slider]]:border-0"
-              onValueChange={(v) => setProgress((v[0] / 100) * duration)}
-            />
+            <Slider value={[progressPercent]} max={100} step={0.1} className="flex-1 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:bg-emerald-400 [&_[role=slider]]:border-0" onValueChange={(v) => setProgress((v[0] / 100) * duration)} />
             <span className="w-10">{formatDuration(duration)}</span>
           </div>
         </div>
 
-        {/* Right Controls */}
         <div className="flex items-center justify-end gap-2 w-[30%]">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden md:flex">
-            <Mic2 className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden md:flex">
-            <ListMusic className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-gray-400 hover:text-white hidden sm:flex"
-            onClick={toggleMute}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden md:flex"><Mic2 className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden md:flex"><ListMusic className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden sm:flex" onClick={toggleMute}>
             {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </Button>
           <div className="hidden sm:flex w-24 items-center">
-            <Slider
-              value={[isMuted ? 0 : volume * 100]}
-              max={100}
-              step={1}
-              className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:bg-emerald-400 [&_[role=slider]]:border-0"
-              onValueChange={(v) => setVolume(v[0] / 100)}
-            />
+            <Slider value={[isMuted ? 0 : volume * 100]} max={100} step={1} className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:bg-emerald-400 [&_[role=slider]]:border-0" onValueChange={(v) => setVolume(v[0] / 100)} />
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-gray-400 hover:text-white"
-            onClick={() => setShowFullPlayer(!showFullPlayer)}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={() => setShowFullPlayer(!showFullPlayer)}>
             <Maximize2 className="h-4 w-4" />
           </Button>
         </div>
@@ -167,40 +165,23 @@ function PlayerBar() {
 // ===== FULL PLAYER OVERLAY =====
 function FullPlayer() {
   const { currentSong, isPlaying, togglePlay, nextSong, prevSong, progress, duration, showFullPlayer, setShowFullPlayer } = usePlayerStore();
-
   if (!showFullPlayer || !currentSong) return null;
-
   const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 40 }}
-      className="fixed inset-0 z-[60] bg-gray-950 flex flex-col items-center justify-center p-6"
-    >
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-4 right-4 text-gray-400 hover:text-white"
-        onClick={() => setShowFullPlayer(false)}
-      >
+    <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }} className="fixed inset-0 z-[60] bg-gray-950 flex flex-col items-center justify-center p-6">
+      <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-gray-400 hover:text-white" onClick={() => setShowFullPlayer(false)}>
         <ChevronDown className="h-6 w-6" />
       </Button>
-
       <div className="w-full max-w-md flex flex-col items-center gap-6">
         <Avatar className="h-72 w-72 rounded-lg shadow-2xl">
           <AvatarImage src={currentSong.coverUrl} alt={currentSong.title} />
-          <AvatarFallback className="bg-emerald-700 text-white h-72 w-72 rounded-lg">
-            <Music2 className="h-20 w-20" />
-          </AvatarFallback>
+          <AvatarFallback className="bg-emerald-700 text-white h-72 w-72 rounded-lg"><Music2 className="h-20 w-20" /></AvatarFallback>
         </Avatar>
-
         <div className="text-center w-full">
           <h2 className="text-2xl font-bold text-white">{currentSong.title}</h2>
           <p className="text-gray-400 mt-1">{currentSong.artistName}</p>
         </div>
-
         <div className="w-full flex items-center gap-3">
           <span className="text-xs text-gray-400 w-10 text-right">{formatDuration(progress)}</span>
           <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden cursor-pointer">
@@ -208,21 +189,12 @@ function FullPlayer() {
           </div>
           <span className="text-xs text-gray-400 w-10">{formatDuration(duration)}</span>
         </div>
-
         <div className="flex items-center gap-6">
-          <Button variant="ghost" size="icon" className="h-12 w-12 text-gray-400 hover:text-white" onClick={prevSong}>
-            <SkipBack className="h-6 w-6" fill="currentColor" />
-          </Button>
-          <Button
-            size="icon"
-            className="h-16 w-16 rounded-full bg-white text-gray-900 hover:scale-105 transition-transform shadow-xl"
-            onClick={togglePlay}
-          >
+          <Button variant="ghost" size="icon" className="h-12 w-12 text-gray-400 hover:text-white" onClick={prevSong}><SkipBack className="h-6 w-6" fill="currentColor" /></Button>
+          <Button size="icon" className="h-16 w-16 rounded-full bg-white text-gray-900 hover:scale-105 transition-transform shadow-xl" onClick={togglePlay}>
             {isPlaying ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="h-7 w-7 ml-1" fill="currentColor" />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-12 w-12 text-gray-400 hover:text-white" onClick={nextSong}>
-            <SkipForward className="h-6 w-6" fill="currentColor" />
-          </Button>
+          <Button variant="ghost" size="icon" className="h-12 w-12 text-gray-400 hover:text-white" onClick={nextSong}><SkipForward className="h-6 w-6" fill="currentColor" /></Button>
         </div>
       </div>
     </motion.div>
@@ -231,7 +203,6 @@ function FullPlayer() {
 
 // ===== LIVES VIEW =====
 function LivesView() {
-  const { setView } = useAppStore();
   return (
     <div className="px-4 pt-2 pb-8 lg:px-6">
       <h1 className="text-2xl font-bold text-white mb-6">Lives Agora</h1>
@@ -296,7 +267,19 @@ function ProfileView() {
             </AvatarFallback>
           </Avatar>
           <h1 className="text-2xl font-bold text-white">{user?.name || 'Usuário'}</h1>
-          <p className="text-gray-400">@{user?.username || 'user'} • {user?.plan === 'free' ? 'Plano Free' : 'Premium'}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400">@{user?.username || 'user'}</span>
+            <span className="text-gray-600">•</span>
+            <span className={`text-sm font-medium ${user?.plan === 'free' ? 'text-gray-400' : 'text-emerald-400'}`}>
+              {user?.plan === 'free' ? 'Plano Free' : 'Premium'}
+            </span>
+            {user?.role === 'admin' && (
+              <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium">Admin</span>
+            )}
+            {user?.role === 'creator' && (
+              <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-medium">Criador</span>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -309,47 +292,47 @@ export default function Home() {
     view, setView, user, setUser, isAuthenticated, setIsAuthenticated,
     showAuthModal, setShowAuthModal, authMode, setAuthMode,
   } = useAppStore();
-  const { currentSong, setQueue, setDuration, setProgress, isPlaying, setIsPlaying } = usePlayerStore();
+  const { currentSong, setDuration, setProgress, isPlaying } = usePlayerStore();
 
   // Simulate song progress
   useEffect(() => {
     if (!isPlaying || !currentSong) return;
-    const interval = setInterval(() => {
-      setProgress(1);
-    }, 1000);
+    const interval = setInterval(() => { setProgress(1); }, 1000);
     return () => clearInterval(interval);
   }, [isPlaying, currentSong, setProgress]);
 
-  // Handle login
-  const handleLogin = useCallback(() => {
-    setUser({
-      id: 'u1',
-      email: 'user@soundflow.com',
-      name: 'Usuário SoundFlow',
-      username: 'soundflow_user',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop',
-      role: 'free',
-      plan: 'free',
-      isVerified: true,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    });
+  // Demo login handler
+  const handleDemoLogin = useCallback((type: 'user' | 'admin') => {
+    const demoUser = DEMO_USERS[type];
+    setUser(demoUser);
     setIsAuthenticated(true);
     setView('home');
-  }, [setUser, setIsAuthenticated, setView]);
+    setShowAuthModal(false);
+  }, [setUser, setIsAuthenticated, setView, setShowAuthModal]);
 
-  // Handle get started
+  // Handle get started (from landing page)
   const handleGetStarted = useCallback(() => {
     setAuthMode('register');
     setShowAuthModal(true);
   }, [setAuthMode, setShowAuthModal]);
 
+  // Handle "Entrar" click (from landing page nav)
+  const handleLoginClick = useCallback(() => {
+    setAuthMode('login');
+    setShowAuthModal(true);
+  }, [setAuthMode, setShowAuthModal]);
+
   // Auto-set duration when song changes
   useEffect(() => {
-    if (currentSong) {
-      setDuration(currentSong.duration);
-    }
+    if (currentSong) setDuration(currentSong.duration);
   }, [currentSong, setDuration]);
+
+  // Redirect if user doesn't have permission for current view
+  useEffect(() => {
+    if (isAuthenticated && user && !canAccess(user.role, view)) {
+      setView('home');
+    }
+  }, [isAuthenticated, user, view, setView]);
 
   // Main content based on view
   const mainContent = useMemo(() => {
@@ -363,39 +346,25 @@ export default function Home() {
       case 'lives': return <LivesView />;
       case 'podcasts': return <PodcastsView />;
       case 'profile': return <ProfileView />;
-      case 'admin': return <AdminPanel />;
-      case 'creator': return <CreatorPanel />;
+      case 'admin': return user?.role === 'admin' || user?.role === 'moderator' ? <AdminPanel /> : <HomeView />;
+      case 'creator': return user?.role === 'admin' || user?.role === 'creator' ? <CreatorPanel /> : <HomeView />;
       default: return <HomeView />;
     }
-  }, [view]);
+  }, [view, user?.role]);
 
   // Show landing page if not authenticated
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-950">
-        <LandingPage onGetStarted={handleGetStarted} />
+        <LandingPage onGetStarted={handleGetStarted} onLogin={handleLoginClick} />
         <AuthModal
           open={showAuthModal}
           onOpenChange={(open) => {
             setShowAuthModal(open);
-            if (open) {
-              // If opening, set mode based on context
-            } else {
-              // If closing, go to home if authenticated
-              if (isAuthenticated) setView('home');
-            }
           }}
           mode={authMode}
+          onDemoLogin={handleDemoLogin}
         />
-        {/* Quick demo login button */}
-        <div className="fixed bottom-4 right-4 z-50">
-          <Button
-            onClick={handleLogin}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 rounded-full px-6"
-          >
-            Entrar como Demo
-          </Button>
-        </div>
       </div>
     );
   }
@@ -404,10 +373,7 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col bg-gray-950 text-white">
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
         <Sidebar />
-
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto pb-20">
           <AnimatePresence mode="wait">
             <motion.div
@@ -423,20 +389,15 @@ export default function Home() {
           </AnimatePresence>
         </main>
       </div>
-
-      {/* Player Bar */}
       <PlayerBar />
-
-      {/* Full Player Overlay */}
       <AnimatePresence>
         {usePlayerStore.getState().showFullPlayer && <FullPlayer />}
       </AnimatePresence>
-
-      {/* Auth Modal for logged in users */}
       <AuthModal
         open={showAuthModal}
         onOpenChange={setShowAuthModal}
         mode={authMode}
+        onDemoLogin={handleDemoLogin}
       />
     </div>
   );

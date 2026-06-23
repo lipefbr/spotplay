@@ -16,11 +16,13 @@ import {
   Shield,
   Mic2,
   LogOut,
+  BadgeCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   Sheet,
   SheetContent,
@@ -31,26 +33,33 @@ import {
 import { useAppStore } from '@/stores/app-store';
 import { mockPlaylists } from '@/lib/mock-data';
 
-const navItems = [
-  { id: 'home' as const, label: 'Início', icon: Home },
-  { id: 'search' as const, label: 'Buscar', icon: Search },
-  { id: 'library' as const, label: 'Sua Biblioteca', icon: Library },
-];
+// Role-based nav visibility
+const ROLE_ACCESS: Record<string, string[]> = {
+  free: ['home', 'search', 'library', 'premium', 'lives', 'podcasts'],
+  premium: ['home', 'search', 'library', 'premium', 'lives', 'podcasts'],
+  creator: ['home', 'search', 'library', 'premium', 'lives', 'podcasts', 'creator'],
+  moderator: ['home', 'search', 'library', 'premium', 'lives', 'podcasts', 'admin'],
+  admin: ['home', 'search', 'library', 'premium', 'lives', 'podcasts', 'admin', 'creator'],
+};
 
-const extraNavItems = [
-  { id: 'premium' as const, label: 'Premium', icon: Crown },
-  { id: 'lives' as const, label: 'Lives', icon: Radio },
-  { id: 'podcasts' as const, label: 'Podcasts', icon: Mic2 },
-];
-
-const specialNavItems = [
-  { id: 'admin' as const, label: 'Admin', icon: Shield },
-  { id: 'creator' as const, label: 'Criador', icon: Mic2 },
+const allNavItems = [
+  { id: 'home', label: 'Início', icon: Home, group: 'main' },
+  { id: 'search', label: 'Buscar', icon: Search, group: 'main' },
+  { id: 'library', label: 'Sua Biblioteca', icon: Library, group: 'main' },
+  { id: 'premium', label: 'Premium', icon: Crown, group: 'extra' },
+  { id: 'lives', label: 'Lives', icon: Radio, group: 'extra' },
+  { id: 'podcasts', label: 'Podcasts', icon: Mic2, group: 'extra' },
+  { id: 'admin', label: 'Admin', icon: Shield, group: 'special' },
+  { id: 'creator', label: 'Criador', icon: Mic2, group: 'special' },
 ];
 
 interface SidebarContentProps {
   view: string;
   selectedPlaylistId: string | null;
+  userRole: string;
+  userName: string;
+  userAvatar?: string;
+  userPlan: string;
   onNavClick: (navId: string) => void;
   onPlaylistClick: (playlistId: string) => void;
   onLikedClick: () => void;
@@ -61,6 +70,10 @@ interface SidebarContentProps {
 function SidebarContent({
   view,
   selectedPlaylistId,
+  userRole,
+  userName,
+  userAvatar,
+  userPlan,
   onNavClick,
   onPlaylistClick,
   onLikedClick,
@@ -68,6 +81,20 @@ function SidebarContent({
   onLogout,
 }: SidebarContentProps) {
   const userPlaylists = useMemo(() => mockPlaylists.slice(0, 5), []);
+
+  // Filter nav items based on role
+  const allowedViews = ROLE_ACCESS[userRole] || ROLE_ACCESS.free;
+  const filteredNav = useMemo(() =>
+    allNavItems.filter((item) => allowedViews.includes(item.id)),
+    [allowedViews]
+  );
+
+  const mainItems = filteredNav.filter((i) => i.group === 'main');
+  const extraItems = filteredNav.filter((i) => i.group === 'extra');
+  const specialItems = filteredNav.filter((i) => i.group === 'special');
+
+  const planLabel = userPlan === 'free' ? 'Plano Free' : 'Premium';
+  const roleLabel = userRole === 'admin' ? 'Admin' : userRole === 'creator' ? 'Criador' : userRole === 'moderator' ? 'Moderador' : null;
 
   return (
     <div className="flex h-full flex-col bg-gray-950">
@@ -81,16 +108,14 @@ function SidebarContent({
 
       {/* Main Navigation */}
       <nav className="px-3 pb-2">
-        {navItems.map((item) => {
+        {mainItems.map((item) => {
           const isActive = view === item.id;
           return (
             <motion.button
               key={item.id}
               onClick={() => onNavClick(item.id)}
               className={`flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'text-emerald-400'
-                  : 'text-gray-400 hover:text-white'
+                isActive ? 'text-emerald-400' : 'text-gray-400 hover:text-white'
               }`}
               whileHover={{ x: 2 }}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
@@ -110,52 +135,63 @@ function SidebarContent({
       </nav>
 
       {/* Extra Nav */}
-      <nav className="px-3 pb-2">
-        {extraNavItems.map((item) => {
-          const isActive = view === item.id;
-          return (
-            <motion.button
-              key={item.id}
-              onClick={() => onNavClick(item.id)}
-              className={`flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'text-emerald-400'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-              whileHover={{ x: 2 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            >
-              <item.icon className={`h-5 w-5 ${isActive ? 'text-emerald-400' : ''}`} />
-              {item.label}
-            </motion.button>
-          );
-        })}
-      </nav>
+      {extraItems.length > 0 && (
+        <nav className="px-3 pb-2">
+          {extraItems.map((item) => {
+            const isActive = view === item.id;
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => onNavClick(item.id)}
+                className={`flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  isActive ? 'text-emerald-400' : 'text-gray-400 hover:text-white'
+                }`}
+                whileHover={{ x: 2 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              >
+                <item.icon className={`h-5 w-5 ${isActive ? 'text-emerald-400' : ''}`} />
+                {item.label}
+              </motion.button>
+            );
+          })}
+        </nav>
+      )}
 
-      <Separator className="bg-gray-800 mx-3" />
-
-      {/* Special Nav (Admin/Creator) */}
-      <nav className="px-3 pb-2">
-        {specialNavItems.map((item) => {
-          const isActive = view === item.id;
-          return (
-            <motion.button
-              key={item.id}
-              onClick={() => onNavClick(item.id)}
-              className={`flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'text-amber-400'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-              whileHover={{ x: 2 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            >
-              <item.icon className={`h-4 w-4 ${isActive ? 'text-amber-400' : ''}`} />
-              {item.label}
-            </motion.button>
-          );
-        })}
-      </nav>
+      {/* Special Nav (Admin/Creator) - only shown if role allows */}
+      {specialItems.length > 0 && (
+        <>
+          <Separator className="bg-gray-800 mx-3" />
+          <nav className="px-3 py-2">
+            {specialItems.map((item) => {
+              const isActive = view === item.id;
+              return (
+                <motion.button
+                  key={item.id}
+                  onClick={() => onNavClick(item.id)}
+                  className={`flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isActive ? 'text-amber-400' : 'text-gray-500 hover:text-gray-300'
+                  }`}
+                  whileHover={{ x: 2 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                >
+                  <item.icon className={`h-4 w-4 ${isActive ? 'text-amber-400' : ''}`} />
+                  {item.label}
+                  {item.id === 'admin' && (
+                    <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0">
+                      {userRole === 'admin' ? 'Admin' : 'Mod'}
+                    </Badge>
+                  )}
+                  {item.id === 'creator' && (
+                    <Badge className="ml-auto bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-1.5 py-0">
+                      Studio
+                    </Badge>
+                  )}
+                </motion.button>
+              );
+            })}
+          </nav>
+        </>
+      )}
 
       <Separator className="bg-gray-800 mx-3" />
 
@@ -164,18 +200,13 @@ function SidebarContent({
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
           Playlists
         </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-gray-400 hover:text-emerald-400"
-        >
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-emerald-400">
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
       <ScrollArea className="flex-1 px-3">
         <div className="space-y-0.5 pb-4">
-          {/* Liked Songs */}
           <button
             onClick={onLikedClick}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400 transition-colors hover:text-white"
@@ -186,7 +217,6 @@ function SidebarContent({
             <span>Músicas Curtidas</span>
           </button>
 
-          {/* User Playlists */}
           {userPlaylists.map((playlist) => (
             <button
               key={playlist.id}
@@ -196,11 +226,7 @@ function SidebarContent({
               }`}
             >
               {playlist.coverUrl ? (
-                <img
-                  src={playlist.coverUrl}
-                  alt={playlist.name}
-                  className="h-8 w-8 rounded object-cover"
-                />
+                <img src={playlist.coverUrl} alt={playlist.name} className="h-8 w-8 rounded object-cover" />
               ) : (
                 <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-800">
                   <Music2 className="h-4 w-4 text-gray-500" />
@@ -210,7 +236,6 @@ function SidebarContent({
             </button>
           ))}
 
-          {/* Create Playlist */}
           <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:text-emerald-400">
             <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-800">
               <Plus className="h-4 w-4" />
@@ -227,12 +252,27 @@ function SidebarContent({
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-gray-800"
         >
           <Avatar className="h-8 w-8">
-            <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" />
-            <AvatarFallback className="bg-emerald-600 text-white text-xs">SF</AvatarFallback>
+            <AvatarImage src={userAvatar} alt={userName} />
+            <AvatarFallback className="bg-emerald-600 text-white text-xs">
+              {userName.charAt(0).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-medium text-white">Usuário SoundFlow</p>
-            <p className="text-xs text-gray-400">Plano Free</p>
+          <div className="flex-1 text-left min-w-0">
+            <div className="flex items-center gap-1">
+              <p className="text-sm font-medium text-white truncate">{userName}</p>
+              {userRole === 'admin' && <BadgeCheck className="h-3.5 w-3.5 text-amber-400 fill-amber-400 shrink-0" />}
+            </div>
+            <div className="flex items-center gap-1">
+              <p className={`text-xs ${userPlan !== 'free' ? 'text-emerald-400' : 'text-gray-400'}`}>
+                {planLabel}
+              </p>
+              {roleLabel && (
+                <>
+                  <span className="text-gray-600 text-xs">•</span>
+                  <p className="text-xs text-amber-400">{roleLabel}</p>
+                </>
+              )}
+            </div>
           </div>
           <Settings className="h-4 w-4 text-gray-500" />
         </button>
@@ -249,7 +289,7 @@ function SidebarContent({
 }
 
 export default function Sidebar() {
-  const { view, setView, selectedPlaylistId, setSelectedPlaylistId, showMobileMenu, setShowMobileMenu, setUser, setIsAuthenticated } = useAppStore();
+  const { view, setView, selectedPlaylistId, setSelectedPlaylistId, showMobileMenu, setShowMobileMenu, user, setUser, setIsAuthenticated } = useAppStore();
 
   const handleNavClick = (navId: string) => {
     setView(navId as any);
@@ -283,6 +323,10 @@ export default function Sidebar() {
   const sidebarProps = {
     view,
     selectedPlaylistId,
+    userRole: user?.role || 'free',
+    userName: user?.name || 'Usuário',
+    userAvatar: user?.avatar,
+    userPlan: user?.plan || 'free',
     onNavClick: handleNavClick,
     onPlaylistClick: handlePlaylistClick,
     onLikedClick: handleLikedClick,
@@ -292,20 +336,14 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-gray-800 h-full">
         <SidebarContent {...sidebarProps} />
       </aside>
 
-      {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-3 left-3 z-40">
         <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
           <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="bg-gray-900/80 backdrop-blur-sm text-white hover:bg-gray-800"
-            >
+            <Button variant="ghost" size="icon" className="bg-gray-900/80 backdrop-blur-sm text-white hover:bg-gray-800">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Eye, EyeOff, Chrome, Apple, Facebook } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Music, Eye, EyeOff, Chrome, Apple, Facebook, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,9 +14,10 @@ interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'login' | 'register';
+  onDemoLogin: (type: 'user' | 'admin') => void;
 }
 
-export default function AuthModal({ open, onOpenChange, mode }: AuthModalProps) {
+export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<string>(mode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -98,196 +99,178 @@ export default function AuthModal({ open, onOpenChange, mode }: AuthModalProps) 
                 </TabsTrigger>
               </TabsList>
 
-              <AnimatePresence mode="wait">
-                {/* Login Tab */}
-                <TabsContent value="login" className="mt-0">
-                  <motion.form
-                    key="login"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.2 }}
-                    onSubmit={handleLogin}
-                    className="space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <Label htmlFor="login-email" className="text-gray-300 text-sm font-medium">
-                        E-mail
-                      </Label>
-                      <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
-                        required
-                      />
-                    </div>
+              {/* Login Tab - no AnimatePresence to avoid duplicate key */}
+              <TabsContent value="login" className="mt-0">
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email" className="text-gray-300 text-sm font-medium">
+                      E-mail
+                    </Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      required
+                    />
+                  </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="login-password" className="text-gray-300 text-sm font-medium">
-                          Senha
-                        </Label>
-                        <a href="#" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
-                          Esqueceu a senha?
-                        </a>
-                      </div>
-                      <div className="relative">
-                        <Input
-                          id="login-password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="••••••••"
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
-                          className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-5 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:shadow-emerald-500/40"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                        />
-                      ) : (
-                        'Entrar'
-                      )}
-                    </Button>
-                  </motion.form>
-                </TabsContent>
-
-                {/* Register Tab */}
-                <TabsContent value="register" className="mt-0">
-                  <motion.form
-                    key="register"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                    onSubmit={handleRegister}
-                    className="space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <Label htmlFor="register-name" className="text-gray-300 text-sm font-medium">
-                        Nome completo
-                      </Label>
-                      <Input
-                        id="register-name"
-                        type="text"
-                        placeholder="Seu nome"
-                        value={registerName}
-                        onChange={(e) => setRegisterName(e.target.value)}
-                        className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="register-email" className="text-gray-300 text-sm font-medium">
-                        E-mail
-                      </Label>
-                      <Input
-                        id="register-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={registerEmail}
-                        onChange={(e) => setRegisterEmail(e.target.value)}
-                        className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="register-password" className="text-gray-300 text-sm font-medium">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password" className="text-gray-300 text-sm font-medium">
                         Senha
                       </Label>
-                      <div className="relative">
-                        <Input
-                          id="register-password"
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Mínimo 8 caracteres"
-                          value={registerPassword}
-                          onChange={(e) => setRegisterPassword(e.target.value)}
-                          className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
-                          required
-                          minLength={8}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
+                      <a href="#" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+                        Esqueceu a senha?
+                      </a>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="register-confirm-password" className="text-gray-300 text-sm font-medium">
-                        Confirmar senha
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          id="register-confirm-password"
-                          type={showConfirmPassword ? 'text' : 'password'}
-                          placeholder="Repita a senha"
-                          value={registerConfirmPassword}
-                          onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                          className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
-                          required
-                          minLength={8}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                        >
-                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
+                  </div>
 
-                    <p className="text-xs text-gray-500 leading-relaxed">
-                      Ao criar uma conta, você concorda com nossos{' '}
-                      <a href="#" className="text-emerald-400 hover:underline">Termos de Uso</a>{' '}
-                      e{' '}
-                      <a href="#" className="text-emerald-400 hover:underline">Política de Privacidade</a>.
-                    </p>
+                  <Button
+                    type="submit"
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-5 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:shadow-emerald-500/40"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                      />
+                    ) : (
+                      'Entrar'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
 
-                    <Button
-                      type="submit"
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-5 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:shadow-emerald-500/40"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                        />
-                      ) : (
-                        'Criar Conta Grátis'
-                      )}
-                    </Button>
-                  </motion.form>
-                </TabsContent>
-              </AnimatePresence>
+              {/* Register Tab */}
+              <TabsContent value="register" className="mt-0">
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="register-name" className="text-gray-300 text-sm font-medium">
+                      Nome completo
+                    </Label>
+                    <Input
+                      id="register-name"
+                      type="text"
+                      placeholder="Seu nome"
+                      value={registerName}
+                      onChange={(e) => setRegisterName(e.target.value)}
+                      className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-email" className="text-gray-300 text-sm font-medium">
+                      E-mail
+                    </Label>
+                    <Input
+                      id="register-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={registerEmail}
+                      onChange={(e) => setRegisterEmail(e.target.value)}
+                      className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-password" className="text-gray-300 text-sm font-medium">
+                      Senha
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="register-password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Mínimo 8 caracteres"
+                        value={registerPassword}
+                        onChange={(e) => setRegisterPassword(e.target.value)}
+                        className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-confirm-password" className="text-gray-300 text-sm font-medium">
+                      Confirmar senha
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="register-confirm-password"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Repita a senha"
+                        value={registerConfirmPassword}
+                        onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                        className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Ao criar uma conta, você concorda com nossos{' '}
+                    <a href="#" className="text-emerald-400 hover:underline">Termos de Uso</a>{' '}
+                    e{' '}
+                    <a href="#" className="text-emerald-400 hover:underline">Política de Privacidade</a>.
+                  </p>
+
+                  <Button
+                    type="submit"
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-5 shadow-lg shadow-emerald-500/20 transition-all duration-200 hover:shadow-emerald-500/40"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                      />
+                    ) : (
+                      'Criar Conta Grátis'
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
 
               {/* Social Login Divider */}
               <div className="relative my-6">
@@ -323,6 +306,43 @@ export default function AuthModal({ open, onOpenChange, mode }: AuthModalProps) 
                 >
                   <Apple className="w-5 h-5" />
                 </Button>
+              </div>
+
+              {/* Demo Login Section */}
+              <div className="mt-6">
+                <div className="relative mb-4">
+                  <Separator className="bg-white/5" />
+                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 px-3 text-amber-400/80 text-xs font-medium">
+                    Acesso Demo
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-emerald-500/30 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-300 transition-all duration-200 py-4 flex flex-col gap-1 h-auto"
+                    onClick={() => onDemoLogin('user')}
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="text-xs font-semibold">Usuário Demo</span>
+                    <span className="text-[10px] text-emerald-500/60">user@soundflow.com</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-amber-500/30 bg-amber-500/5 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-300 transition-all duration-200 py-4 flex flex-col gap-1 h-auto"
+                    onClick={() => onDemoLogin('admin')}
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span className="text-xs font-semibold">Admin Demo</span>
+                    <span className="text-[10px] text-amber-500/60">admin@soundflow.com</span>
+                  </Button>
+                </div>
+
+                <p className="text-[10px] text-gray-600 text-center mt-3">
+                  Contas de demonstração para testar a plataforma
+                </p>
               </div>
             </Tabs>
           </div>

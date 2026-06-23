@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import {
   Music, Headphones, Download, Wifi, Zap, Star, Check, Play,
@@ -14,6 +14,7 @@ import { subscriptionPlans, genres } from '@/lib/mock-data';
 
 interface LandingPageProps {
   onGetStarted: () => void;
+  onLogin?: () => void;
 }
 
 // Animated section wrapper
@@ -35,7 +36,7 @@ function AnimatedSection({ children, className = '', delay = 0 }: { children: Re
 }
 
 // Navigation Bar
-function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
+function NavBar({ onGetStarted, onLogin }: { onGetStarted: () => void; onLogin?: () => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -82,7 +83,7 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
             <Button
               variant="ghost"
               className="text-gray-300 hover:text-white hover:bg-white/10"
-              onClick={onGetStarted}
+              onClick={onLogin || onGetStarted}
             >
               Entrar
             </Button>
@@ -125,7 +126,7 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
                 </a>
               ))}
               <div className="pt-3 flex flex-col gap-2">
-                <Button variant="ghost" className="text-gray-300 hover:text-white w-full" onClick={onGetStarted}>Entrar</Button>
+                <Button variant="ghost" className="text-gray-300 hover:text-white w-full" onClick={onLogin || onGetStarted}>Entrar</Button>
                 <Button className="bg-emerald-500 hover:bg-emerald-600 text-white w-full font-semibold" onClick={onGetStarted}>Começar Grátis</Button>
               </div>
             </div>
@@ -136,11 +137,48 @@ function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
+// Client-only wrapper to prevent hydration mismatch
+const emptySubscribe = () => () => {};
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+  if (!mounted) return null;
+  return <>{children}</>;
+}
+
+// Floating Music Notes - extracted to separate component for client-only rendering
+function FloatingNotes() {
+  const notes = [
+    { scale: 0.8, x: '15%', delay: 0, rotate: 0, dur: 15 },
+    { scale: 0.6, x: '30%', delay: 2, rotate: 60, dur: 16.5 },
+    { scale: 0.9, x: '45%', delay: 4, rotate: 120, dur: 18 },
+    { scale: 0.7, x: '60%', delay: 6, rotate: 180, dur: 19.5 },
+    { scale: 0.95, x: '75%', delay: 8, rotate: 240, dur: 21 },
+    { scale: 0.55, x: '90%', delay: 10, rotate: 300, dur: 22.5 },
+  ];
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {notes.map((note, i) => (
+        <motion.div
+          key={i}
+          className="absolute text-emerald-500/10"
+          initial={{ x: note.x, y: '100%', scale: note.scale, rotate: note.rotate }}
+          animate={{ y: '-10%', rotate: note.rotate + 360 }}
+          transition={{ duration: note.dur, repeat: Infinity, delay: note.delay, ease: 'linear' }}
+        >
+          <Music className="w-8 h-8 md:w-12 md:h-12" />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 // Hero Section
 function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
-  // Client-side only check for SSR-safe rendering
-  const isClient = typeof window !== 'undefined';
-
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background */}
@@ -149,32 +187,9 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(5,150,105,0.1),transparent_50%)]" />
 
       {/* Floating music notes animation - client-only to avoid hydration mismatch */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {isClient && [0.8, 0.6, 0.9, 0.7, 0.95, 0.55].map((scale, i) => (
-          <motion.div
-            key={i}
-            className="absolute text-emerald-500/10"
-            initial={{
-              x: `${15 + i * 15}%`,
-              y: '100%',
-              scale: scale,
-              rotate: i * 60,
-            }}
-            animate={{
-              y: '-10%',
-              rotate: i * 60 + 360,
-            }}
-            transition={{
-              duration: 15 + i * 1.5,
-              repeat: Infinity,
-              delay: i * 2,
-              ease: 'linear',
-            }}
-          >
-            <Music className="w-8 h-8 md:w-12 md:h-12" />
-          </motion.div>
-        ))}
-      </div>
+      <ClientOnly>
+        <FloatingNotes />
+      </ClientOnly>
 
       {/* Grid overlay */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:64px_64px]" />
@@ -963,10 +978,10 @@ function Footer() {
 }
 
 // Main Landing Page
-export default function LandingPage({ onGetStarted }: LandingPageProps) {
+export default function LandingPage({ onGetStarted, onLogin }: LandingPageProps) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-950">
-      <NavBar onGetStarted={onGetStarted} />
+      <NavBar onGetStarted={onGetStarted} onLogin={onLogin} />
       <main className="flex-1">
         <HeroSection onGetStarted={onGetStarted} />
         <FeaturesSection />
