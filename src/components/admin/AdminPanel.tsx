@@ -183,6 +183,7 @@ interface MockAdCampaign {
   targetUrl: string;
   duration: number;
   frequency: number;
+  audioFileName?: string;
 }
 
 // ===== SIDEBAR NAV ITEMS =====
@@ -1404,6 +1405,9 @@ function LivesView() {
 function AdsView() {
   const [campaigns, setCampaigns] = useState(mockAdCampaigns);
   const [createDialog, setCreateDialog] = useState(false);
+  const [editingCampaign, setEditingCampaign] = useState<string | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [newCampaign, setNewCampaign] = useState({
     name: '', type: 'audio' as 'audio' | 'video' | 'banner',
     targetUrl: '', duration: '30', frequency: '3', budget: '',
@@ -1413,23 +1417,81 @@ function AdsView() {
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'active' ? 'inactive' as const : 'active' as const } : c));
   };
 
-  const handleCreateCampaign = () => {
-    const campaign: MockAdCampaign = {
-      id: `ad${Date.now()}`,
-      name: newCampaign.name,
-      type: newCampaign.type,
-      status: 'active',
-      impressions: 0,
-      clicks: 0,
-      budget: parseFloat(newCampaign.budget) || 0,
-      spent: 0,
-      targetUrl: newCampaign.targetUrl,
-      duration: parseInt(newCampaign.duration) || 30,
-      frequency: parseInt(newCampaign.frequency) || 3,
-    };
-    setCampaigns(prev => [...prev, campaign]);
-    setCreateDialog(false);
+  const resetForm = () => {
     setNewCampaign({ name: '', type: 'audio', targetUrl: '', duration: '30', frequency: '3', budget: '' });
+    setAudioFile(null);
+    setEditingCampaign(null);
+    setIsDragOver(false);
+  };
+
+  const handleOpenCreate = () => {
+    resetForm();
+    setCreateDialog(true);
+  };
+
+  const handleOpenEdit = (campaign: MockAdCampaign) => {
+    setEditingCampaign(campaign.id);
+    setNewCampaign({
+      name: campaign.name,
+      type: campaign.type,
+      targetUrl: campaign.targetUrl,
+      duration: String(campaign.duration),
+      frequency: String(campaign.frequency),
+      budget: String(campaign.budget),
+    });
+    setAudioFile(null);
+    setCreateDialog(true);
+  };
+
+  const handleCreateCampaign = () => {
+    if (editingCampaign) {
+      // Update existing campaign
+      setCampaigns(prev => prev.map(c => c.id === editingCampaign ? {
+        ...c,
+        name: newCampaign.name,
+        type: newCampaign.type,
+        targetUrl: newCampaign.targetUrl,
+        duration: parseInt(newCampaign.duration) || 30,
+        frequency: parseInt(newCampaign.frequency) || 3,
+        budget: parseFloat(newCampaign.budget) || 0,
+        audioFileName: audioFile ? audioFile.name : c.audioFileName,
+      } : c));
+    } else {
+      // Create new campaign
+      const campaign: MockAdCampaign = {
+        id: `ad${Date.now()}`,
+        name: newCampaign.name,
+        type: newCampaign.type,
+        status: 'active',
+        impressions: 0,
+        clicks: 0,
+        budget: parseFloat(newCampaign.budget) || 0,
+        spent: 0,
+        targetUrl: newCampaign.targetUrl,
+        duration: parseInt(newCampaign.duration) || 30,
+        frequency: parseInt(newCampaign.frequency) || 3,
+        audioFileName: audioFile ? audioFile.name : undefined,
+      };
+      setCampaigns(prev => [...prev, campaign]);
+    }
+    setCreateDialog(false);
+    resetForm();
+  };
+
+  const handleAudioDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('audio/')) {
+      setAudioFile(file);
+    }
+  };
+
+  const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAudioFile(file);
+    }
   };
 
   const typeLabels: Record<string, string> = { audio: 'Áudio', video: 'Vídeo', banner: 'Banner' };
@@ -1442,7 +1504,7 @@ function AdsView() {
           <h2 className="text-2xl font-bold text-white">Anúncios</h2>
           <p className="text-sm text-gray-400 mt-1">Gerenciar campanhas publicitárias</p>
         </div>
-        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => setCreateDialog(true)}>
+        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleOpenCreate}>
           <Plus className="h-4 w-4 mr-2" /> Nova Campanha
         </Button>
       </div>
@@ -1454,6 +1516,7 @@ function AdsView() {
               <TableRow className="border-white/5 hover:bg-transparent">
                 <TableHead className="text-gray-400">Campanha</TableHead>
                 <TableHead className="text-gray-400">Tipo</TableHead>
+                <TableHead className="text-gray-400">Áudio</TableHead>
                 <TableHead className="text-gray-400">Status</TableHead>
                 <TableHead className="text-gray-400">Impressões</TableHead>
                 <TableHead className="text-gray-400">Cliques</TableHead>
@@ -1474,6 +1537,16 @@ function AdsView() {
                         <span className="text-sm text-gray-300">{typeLabels[campaign.type]}</span>
                       </div>
                     </TableCell>
+                    <TableCell>
+                      {campaign.audioFileName ? (
+                        <div className="flex items-center gap-1.5">
+                          <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+                          <span className="text-xs text-gray-300 truncate max-w-[120px]">{campaign.audioFileName}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-600">—</span>
+                      )}
+                    </TableCell>
                     <TableCell><StatusBadge status={campaign.status} /></TableCell>
                     <TableCell className="text-sm text-gray-300">{campaign.impressions.toLocaleString('pt-BR')}</TableCell>
                     <TableCell className="text-sm text-gray-300">{campaign.clicks.toLocaleString('pt-BR')}</TableCell>
@@ -1481,6 +1554,14 @@ function AdsView() {
                     <TableCell className="text-sm text-gray-300">{formatCurrency(campaign.spent)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-gray-400 hover:text-white"
+                          onClick={() => handleOpenEdit(campaign)}
+                        >
+                          <Edit3 className="h-3.5 w-3.5 mr-1" /> Editar
+                        </Button>
                         <Switch
                           checked={campaign.status === 'active'}
                           onCheckedChange={() => handleToggleCampaign(campaign.id)}
@@ -1496,12 +1577,12 @@ function AdsView() {
         </CardContent>
       </Card>
 
-      {/* Create Campaign Dialog */}
-      <Dialog open={createDialog} onOpenChange={setCreateDialog}>
-        <DialogContent className="bg-gray-900 border-gray-700 text-white">
+      {/* Create/Edit Campaign Dialog */}
+      <Dialog open={createDialog} onOpenChange={(open) => { if (!open) resetForm(); setCreateDialog(open); }}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova Campanha</DialogTitle>
-            <DialogDescription className="text-gray-400">Crie uma nova campanha publicitária</DialogDescription>
+            <DialogTitle>{editingCampaign ? 'Editar Campanha' : 'Nova Campanha'}</DialogTitle>
+            <DialogDescription className="text-gray-400">{editingCampaign ? 'Edite os dados da campanha' : 'Crie uma nova campanha publicitária'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -1524,6 +1605,59 @@ function AdsView() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Audio Upload Dropzone */}
+            {(newCampaign.type === 'audio' || newCampaign.type === 'video') && (
+              <div className="space-y-2">
+                <Label className="text-gray-300">Arquivo de Áudio</Label>
+                <div
+                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                    isDragOver
+                      ? 'border-emerald-400 bg-emerald-500/10'
+                      : 'border-gray-700 hover:border-gray-500 bg-gray-800/50'
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={handleAudioDrop}
+                  onClick={() => document.getElementById('audio-upload-input')?.click()}
+                >
+                  <input
+                    id="audio-upload-input"
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={handleAudioSelect}
+                  />
+                  {audioFile ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Volume2 className="h-5 w-5 text-emerald-400" />
+                      <span className="text-sm text-emerald-400 font-medium">{audioFile.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-gray-400 hover:text-red-400"
+                        onClick={(e) => { e.stopPropagation(); setAudioFile(null); }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : editingCampaign && campaigns.find(c => c.id === editingCampaign)?.audioFileName ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Volume2 className="h-5 w-5 text-gray-400" />
+                      <span className="text-sm text-gray-300">{campaigns.find(c => c.id === editingCampaign)?.audioFileName}</span>
+                      <span className="text-xs text-gray-500">(arraste um novo para substituir)</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <Upload className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+                      <p className="text-sm text-gray-400">Arraste um arquivo de áudio aqui</p>
+                      <p className="text-xs text-gray-500 mt-1">ou clique para selecionar</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label className="text-gray-300">URL de Destino</Label>
               <Input
@@ -1565,9 +1699,9 @@ function AdsView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" className="text-gray-400" onClick={() => setCreateDialog(false)}>Cancelar</Button>
+            <Button variant="ghost" className="text-gray-400" onClick={() => { setCreateDialog(false); resetForm(); }}>Cancelar</Button>
             <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleCreateCampaign} disabled={!newCampaign.name || !newCampaign.budget}>
-              Criar Campanha
+              {editingCampaign ? 'Salvar Alterações' : 'Criar Campanha'}
             </Button>
           </DialogFooter>
         </DialogContent>

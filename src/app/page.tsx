@@ -5,14 +5,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
   Volume2, VolumeX, Heart, Music2, Maximize2, ChevronDown,
-  Mic2, ListMusic,
+  Mic2, ListMusic, ChevronUp, X, Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useAppStore, usePlayerStore } from '@/stores/app-store';
 import { formatDuration, formatPlayCount } from '@/lib/asaas';
-import { mockLiveStreams, mockPodcasts } from '@/lib/mock-data';
+import { mockLiveStreams, mockPodcasts, mockPlaylists } from '@/lib/mock-data';
 import type { UserType } from '@/types';
 
 import LandingPage from '@/components/landing/LandingPage';
@@ -69,16 +69,53 @@ function canAccess(role: string, view: string): boolean {
   return permissions.includes(view);
 }
 
+// ===== MINI PLAYER BAR =====
+function MiniPlayerBar() {
+  const { currentSong, isPlaying, togglePlay, togglePlayerMinimized } = usePlayerStore();
+
+  if (!currentSong) return null;
+
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-50 h-10 border-t border-white/5 bg-gray-950/95 backdrop-blur-xl flex items-center px-3 gap-3">
+      <Avatar className="h-7 w-7 rounded shrink-0">
+        <AvatarImage src={currentSong.coverUrl} alt={currentSong.title} />
+        <AvatarFallback className="bg-emerald-700 text-white rounded">
+          <Music2 className="h-3.5 w-3.5" />
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-white truncate">{currentSong.title}</p>
+        <p className="text-[10px] text-gray-400 truncate">{currentSong.artistName}</p>
+      </div>
+      <Button
+        size="icon"
+        className="h-7 w-7 rounded-full bg-white text-gray-900 hover:scale-105 transition-transform"
+        onClick={togglePlay}
+      >
+        {isPlaying ? <Pause className="h-3.5 w-3.5" fill="currentColor" /> : <Play className="h-3.5 w-3.5 ml-0.5" fill="currentColor" />}
+      </Button>
+      <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={togglePlayerMinimized}>
+        <ChevronUp className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 // ===== PLAYER BAR =====
 function PlayerBar() {
   const {
     currentSong, isPlaying, togglePlay, nextSong, prevSong,
     progress, duration, volume, shuffle, repeat, isMuted,
     toggleShuffle, toggleRepeat, toggleMute, setVolume, setProgress,
-    showFullPlayer, setShowFullPlayer,
+    showFullPlayer, setShowFullPlayer, playerMinimized, togglePlayerMinimized, clearPlayer,
   } = usePlayerStore();
 
   if (!currentSong) return null;
+
+  // Show mini player when minimized
+  if (playerMinimized) {
+    return <MiniPlayerBar />;
+  }
 
   const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
 
@@ -144,7 +181,7 @@ function PlayerBar() {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 w-[30%]">
+        <div className="flex items-center justify-end gap-1 sm:gap-2 w-[30%]">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden md:flex"><Mic2 className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden md:flex"><ListMusic className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden sm:flex" onClick={toggleMute}>
@@ -155,6 +192,12 @@ function PlayerBar() {
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={() => setShowFullPlayer(!showFullPlayer)}>
             <Maximize2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={togglePlayerMinimized} title="Minimizar">
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-400" onClick={clearPlayer} title="Fechar">
+            <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -255,10 +298,10 @@ function PodcastsView() {
 
 // ===== PROFILE VIEW =====
 function ProfileView() {
-  const { user } = useAppStore();
+  const { user, setView, setSelectedPlaylistId } = useAppStore();
   return (
     <div className="px-4 pt-2 pb-8 lg:px-6">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <div className="flex flex-col items-center gap-4 mb-8">
           <Avatar className="h-32 w-32">
             <AvatarImage src={user?.avatar} alt={user?.name || 'User'} />
@@ -279,6 +322,60 @@ function ProfileView() {
             {user?.role === 'creator' && (
               <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-medium">Criador</span>
             )}
+          </div>
+        </div>
+
+        {/* Minhas Playlists */}
+        <div className="mt-6">
+          <h2 className="text-xl font-bold text-white mb-4">Minhas Playlists</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Músicas Curtidas Card */}
+            <button
+              onClick={() => {
+                setSelectedPlaylistId('liked');
+                setView('playlist');
+              }}
+              className="group cursor-pointer"
+            >
+              <div className="aspect-square overflow-hidden rounded-lg mb-2 flex items-center justify-center bg-gradient-to-br from-purple-700 to-blue-300 relative">
+                <Heart className="h-12 w-12 text-white" fill="white" />
+              </div>
+              <p className="text-sm font-semibold text-white truncate">Músicas Curtidas</p>
+              <p className="text-xs text-gray-400 truncate">Playlist • 12 músicas</p>
+            </button>
+
+            {/* Criar Playlist Card */}
+            <button className="group cursor-pointer">
+              <div className="aspect-square overflow-hidden rounded-lg mb-2 flex items-center justify-center bg-gray-800/50 border-2 border-dashed border-gray-700 hover:border-emerald-500/50 transition-colors">
+                <Plus className="h-10 w-10 text-gray-500 group-hover:text-emerald-400 transition-colors" />
+              </div>
+              <p className="text-sm font-semibold text-gray-400 group-hover:text-emerald-400 truncate transition-colors">Criar Playlist</p>
+              <p className="text-xs text-gray-500 truncate">Monte sua playlist</p>
+            </button>
+
+            {/* Mock Playlists */}
+            {mockPlaylists.map((playlist) => (
+              <button
+                key={playlist.id}
+                onClick={() => {
+                  setSelectedPlaylistId(playlist.id);
+                  setView('playlist');
+                }}
+                className="group cursor-pointer"
+              >
+                <div className="aspect-square overflow-hidden rounded-lg mb-2">
+                  {playlist.coverUrl ? (
+                    <img src={playlist.coverUrl} alt={playlist.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  ) : (
+                    <div className="h-full w-full bg-gray-800 flex items-center justify-center">
+                      <Music2 className="h-10 w-10 text-gray-600" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-white truncate">{playlist.name}</p>
+                <p className="text-xs text-gray-400 truncate">{playlist.description} • {playlist.songCount || 0} músicas</p>
+              </button>
+            ))}
           </div>
         </div>
       </div>

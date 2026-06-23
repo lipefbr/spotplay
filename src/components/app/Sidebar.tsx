@@ -292,6 +292,11 @@ export default function Sidebar() {
   const { view, setView, selectedPlaylistId, setSelectedPlaylistId, showMobileMenu, setShowMobileMenu, user, setUser, setIsAuthenticated } = useAppStore();
 
   const handleNavClick = (navId: string) => {
+    if (navId === 'admin') {
+      window.open('/admin', '_blank');
+      setShowMobileMenu(false);
+      return;
+    }
     setView(navId as any);
     setShowMobileMenu(false);
   };
@@ -340,14 +345,14 @@ export default function Sidebar() {
         <SidebarContent {...sidebarProps} />
       </aside>
 
-      <div className="lg:hidden fixed top-3 left-3 z-40">
+      <div className="lg:hidden fixed top-3 left-3 z-[60]">
         <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="bg-gray-900/80 backdrop-blur-sm text-white hover:bg-gray-800">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-72 bg-gray-950 border-gray-800">
+          <SheetContent side="left" className="p-0 w-72 bg-gray-950 border-gray-800 z-[70]">
             <SheetHeader className="sr-only">
               <SheetTitle>Menu</SheetTitle>
             </SheetHeader>
