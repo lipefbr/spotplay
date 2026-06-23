@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { verifyPassword, generateToken } from '@/lib/auth';
 
 // Helper to strip sensitive fields from user object
 function sanitizeUser(user: Record<string, unknown>) {
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
     // Validate required fields
     if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'E-mail e senha são obrigatórios' },
         { status: 400 }
       );
     }
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: 'E-mail ou senha inválidos' },
         { status: 401 }
       );
     }
@@ -35,16 +36,15 @@ export async function POST(request: Request) {
     // Check if user is active
     if (!user.isActive) {
       return NextResponse.json(
-        { error: 'Account is deactivated. Please contact support.' },
+        { error: 'Conta desativada. Entre em contato com o suporte.' },
         { status: 403 }
       );
     }
 
-    // In production, compare hashed password with bcrypt/argon2
-    // For now, we do a direct comparison (to be replaced with proper hashing)
-    if (user.password !== password) {
+    // Compare hashed password
+    if (!user.password || !verifyPassword(password, user.password)) {
       return NextResponse.json(
-        { error: 'Invalid email or password' },
+        { error: 'E-mail ou senha inválidos' },
         { status: 401 }
       );
     }
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     if (user.twoFactorEnabled) {
       return NextResponse.json(
         {
-          message: 'Two-factor authentication required',
+          message: 'Autenticação de dois fatores necessária',
           requiresTwoFactor: true,
           userId: user.id,
         },
@@ -61,17 +61,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Generate token for session
+    const token = generateToken(user.id);
+
     return NextResponse.json(
       {
-        message: 'Login successful',
+        message: 'Login realizado com sucesso',
         user: sanitizeUser(user),
+        token,
       },
       { status: 200 }
     );
   } catch (error) {
     console.error('[AUTH_LOGIN]', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }

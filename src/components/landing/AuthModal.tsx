@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Music, Eye, EyeOff, Chrome, Apple, Facebook, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,19 +9,22 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import type { UserType } from '@/types';
 
 interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'login' | 'register';
   onDemoLogin: (type: 'user' | 'admin') => void;
+  onLoginSuccess: (user: UserType) => void;
 }
 
-export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: AuthModalProps) {
+export default function AuthModal({ open, onOpenChange, mode, onDemoLogin, onLoginSuccess }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<string>(mode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -33,26 +36,135 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: Aut
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState('');
 
+  // Sync tab with mode prop
+  useEffect(() => {
+    setActiveTab(mode);
+    // Clear errors when switching modes
+    setError('');
+  }, [mode]);
+
+  // Clear errors when switching tabs
+  useEffect(() => {
+    setError('');
+  }, [activeTab]);
+
+  // Seed demo users on first open
+  useEffect(() => {
+    if (open) {
+      fetch('/api/auth/seed').catch(() => {
+        // Silently fail - seeding is optional
+      });
+    }
+  }, [open]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    onOpenChange(false);
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Erro ao fazer login');
+        return;
+      }
+
+      // Login successful
+      const user: UserType = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name || undefined,
+        username: data.user.username || undefined,
+        avatar: data.user.avatar || undefined,
+        bio: data.user.bio || undefined,
+        role: data.user.role,
+        plan: data.user.plan,
+        isVerified: data.user.isVerified,
+        isActive: data.user.isActive,
+        createdAt: data.user.createdAt,
+      };
+
+      onLoginSuccess(user);
+      onOpenChange(false);
+    } catch {
+      setError('Erro de conexão. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    // Validate passwords match
+    if (registerPassword !== registerConfirmPassword) {
+      setError('As senhas não coincidem');
+      return;
+    }
+
+    if (registerPassword.length < 6) {
+      setError('A senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    onOpenChange(false);
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: registerName,
+          email: registerEmail,
+          password: registerPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Erro ao criar conta');
+        return;
+      }
+
+      // Registration successful - auto-login
+      const user: UserType = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name || undefined,
+        username: data.user.username || undefined,
+        avatar: data.user.avatar || undefined,
+        bio: data.user.bio || undefined,
+        role: data.user.role,
+        plan: data.user.plan,
+        isVerified: data.user.isVerified,
+        isActive: data.user.isActive,
+        createdAt: data.user.createdAt,
+      };
+
+      onLoginSuccess(user);
+      onOpenChange(false);
+    } catch {
+      setError('Erro de conexão. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSocialLogin = (provider: string) => {
-    console.log(`Login with ${provider}`);
+    console.log(`Login with ${provider} - not yet implemented`);
+    setError(`Login com ${provider} ainda não está disponível`);
   };
 
   return (
@@ -99,7 +211,18 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: Aut
                 </TabsTrigger>
               </TabsList>
 
-              {/* Login Tab - no AnimatePresence to avoid duplicate key */}
+              {/* Error message */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              {/* Login Tab */}
               <TabsContent value="login" className="mt-0">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
@@ -111,7 +234,7 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: Aut
                       type="email"
                       placeholder="seu@email.com"
                       value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
+                      onChange={(e) => { setLoginEmail(e.target.value); setError(''); }}
                       className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
                       required
                     />
@@ -132,7 +255,7 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: Aut
                         type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
                         value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
+                        onChange={(e) => { setLoginPassword(e.target.value); setError(''); }}
                         className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
                         required
                       />
@@ -176,7 +299,7 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: Aut
                       type="text"
                       placeholder="Seu nome"
                       value={registerName}
-                      onChange={(e) => setRegisterName(e.target.value)}
+                      onChange={(e) => { setRegisterName(e.target.value); setError(''); }}
                       className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
                       required
                     />
@@ -191,7 +314,7 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: Aut
                       type="email"
                       placeholder="seu@email.com"
                       value={registerEmail}
-                      onChange={(e) => setRegisterEmail(e.target.value)}
+                      onChange={(e) => { setRegisterEmail(e.target.value); setError(''); }}
                       className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20"
                       required
                     />
@@ -205,12 +328,12 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: Aut
                       <Input
                         id="register-password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Mínimo 8 caracteres"
+                        placeholder="Mínimo 6 caracteres"
                         value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
+                        onChange={(e) => { setRegisterPassword(e.target.value); setError(''); }}
                         className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
                         required
-                        minLength={8}
+                        minLength={6}
                       />
                       <button
                         type="button"
@@ -232,10 +355,10 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin }: Aut
                         type={showConfirmPassword ? 'text' : 'password'}
                         placeholder="Repita a senha"
                         value={registerConfirmPassword}
-                        onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                        onChange={(e) => { setRegisterConfirmPassword(e.target.value); setError(''); }}
                         className="bg-gray-800/50 border-white/10 text-white placeholder:text-gray-500 focus:border-emerald-500 focus:ring-emerald-500/20 pr-10"
                         required
-                        minLength={8}
+                        minLength={6}
                       />
                       <button
                         type="button"

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { hashPassword } from '@/lib/auth';
 
 // Helper to strip sensitive fields from user object
 function sanitizeUser(user: Record<string, unknown>) {
@@ -10,12 +11,12 @@ function sanitizeUser(user: Record<string, unknown>) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, name, password, username, role } = body;
+    const { email, name, username, password } = body;
 
     // Validate required fields
     if (!email || !name || !password) {
       return NextResponse.json(
-        { error: 'Email, name, and password are required' },
+        { error: 'Email, nome e senha são obrigatórios' },
         { status: 400 }
       );
     }
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { error: 'Invalid email format' },
+        { error: 'Formato de e-mail inválido' },
         { status: 400 }
       );
     }
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     // Validate password length
     if (password.length < 6) {
       return NextResponse.json(
-        { error: 'Password must be at least 6 characters' },
+        { error: 'A senha deve ter no mínimo 6 caracteres' },
         { status: 400 }
       );
     }
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'Email already registered' },
+        { error: 'Este e-mail já está cadastrado' },
         { status: 409 }
       );
     }
@@ -56,32 +57,33 @@ export async function POST(request: Request) {
       });
       if (existingUsername) {
         return NextResponse.json(
-          { error: 'Username already taken' },
+          { error: 'Este nome de usuário já está em uso' },
           { status: 409 }
         );
       }
     }
 
-    // Validate role
-    const validRoles = ['free', 'premium', 'creator', 'moderator', 'admin'];
-    const userRole = role && validRoles.includes(role) ? role : 'free';
+    // Hash the password with SHA-256
+    const hashedPassword = hashPassword(password);
 
-    // In production, hash the password with bcrypt/argon2
-    // For now, we store it directly (to be replaced with proper hashing)
+    // Generate a username from email if not provided
+    const generatedUsername = username || email.split('@')[0] + '_' + Date.now().toString(36);
+
+    // Create user with default role='free' and plan='free'
     const user = await db.user.create({
       data: {
         email,
         name,
-        username: username || null,
-        password,
-        role: userRole,
-        plan: userRole === 'premium' ? 'premium_individual' : 'free',
+        username: generatedUsername,
+        password: hashedPassword,
+        role: 'free',
+        plan: 'free',
       },
     });
 
     return NextResponse.json(
       {
-        message: 'User registered successfully',
+        message: 'Usuário registrado com sucesso',
         user: sanitizeUser(user),
       },
       { status: 201 }
@@ -89,7 +91,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[AUTH_REGISTER]', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Erro interno do servidor' },
       { status: 500 }
     );
   }

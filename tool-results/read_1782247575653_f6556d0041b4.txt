@@ -1,0 +1,590 @@
+   269→                  </div>
+   270→                </div>
+   271→                <div className="flex items-center gap-1 mt-3">
+   272→                  {stat.trend === 'up' ? (
+   273→                    <ArrowUpRight className="w-3 h-3 text-emerald-400" />
+   274→                  ) : (
+   275→                    <ArrowDownRight className="w-3 h-3 text-red-400" />
+   276→                  )}
+   277→                  <span
+   278→                    className={`text-xs font-medium ${
+   279→                      stat.trend === 'up' ? 'text-emerald-400' : 'text-red-400'
+   280→                    }`}
+   281→                  >
+   282→                    {stat.change}
+   283→                  </span>
+   284→                  <span className="text-gray-500 text-xs">{stat.description}</span>
+   285→                </div>
+   286→              </CardContent>
+   287→            </Card>
+   288→          );
+   289→        })}
+   290→      </div>
+   291→
+   292→      {/* Charts Row */}
+   293→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   294→        {/* Revenue Chart */}
+   295→        <Card className="bg-gray-900 border-gray-800">
+   296→          <CardHeader className="pb-2">
+   297→            <div className="flex items-center justify-between">
+   298→              <div>
+   299→                <CardTitle className="text-white text-base">Receita Mensal</CardTitle>
+   300→                <CardDescription className="text-gray-400 text-xs">
+   301→                  Evolução da receita nos últimos 6 meses
+   302→                </CardDescription>
+   303→              </div>
+   304→              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+   305→                <TrendingUp className="w-3 h-3 mr-1" />
+   306→                +15.3%
+   307→              </Badge>
+   308→            </div>
+   309→          </CardHeader>
+   310→          <CardContent className="pt-0">
+   311→            <div className="h-72">
+   312→              <ResponsiveContainer width="100%" height="100%">
+   313→                <BarChart data={data.revenueByMonth} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+   314→                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+   315→                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} tickLine={false} />
+   316→                  <YAxis stroke="#6b7280" fontSize={12} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+   317→                  <Tooltip
+   318→                    contentStyle={{
+   319→                      backgroundColor: '#111827',
+   320→                      border: '1px solid #1f2937',
+   321→                      borderRadius: '8px',
+   322→                      color: '#f9fafb',
+   323→                    }}
+   324→                    formatter={(value: number) => [formatCurrency(value), 'Receita']}
+   325→                    cursor={{ fill: 'rgba(16, 185, 129, 0.1)' }}
+   326→                  />
+   327→                  <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={48} />
+   328→                </BarChart>
+   329→              </ResponsiveContainer>
+   330→            </div>
+   331→          </CardContent>
+   332→        </Card>
+   333→
+   334→        {/* User Growth Chart */}
+   335→        <Card className="bg-gray-900 border-gray-800">
+   336→          <CardHeader className="pb-2">
+   337→            <div className="flex items-center justify-between">
+   338→              <div>
+   339→                <CardTitle className="text-white text-base">Crescimento de Usuários</CardTitle>
+   340→                <CardDescription className="text-gray-400 text-xs">
+   341→                  Novos cadastros por mês
+   342→                </CardDescription>
+   343→              </div>
+   344→              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+   345→                <TrendingUp className="w-3 h-3 mr-1" />
+   346→                +12.5%
+   347→              </Badge>
+   348→            </div>
+   349→          </CardHeader>
+   350→          <CardContent className="pt-0">
+   351→            <div className="h-72">
+   352→              <ResponsiveContainer width="100%" height="100%">
+   353→                <LineChart data={data.usersByMonth} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+   354→                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+   355→                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} tickLine={false} />
+   356→                  <YAxis stroke="#6b7280" fontSize={12} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+   357→                  <Tooltip
+   358→                    contentStyle={{
+   359→                      backgroundColor: '#111827',
+   360→                      border: '1px solid #1f2937',
+   361→                      borderRadius: '8px',
+   362→                      color: '#f9fafb',
+   363→                    }}
+   364→                    formatter={(value: number) => [value.toLocaleString('pt-BR'), 'Usuários']}
+   365→                    cursor={{ stroke: '#10b981', strokeWidth: 1 }}
+   366→                  />
+   367→                  <Line
+   368→                    type="monotone"
+   369→                    dataKey="users"
+   370→                    stroke="#10b981"
+   371→                    strokeWidth={2.5}
+   372→                    dot={{ fill: '#10b981', r: 4, strokeWidth: 0 }}
+   373→                    activeDot={{ r: 6, fill: '#10b981', stroke: '#030712', strokeWidth: 2 }}
+   374→                  />
+   375→                </LineChart>
+   376→              </ResponsiveContainer>
+   377→            </div>
+   378→          </CardContent>
+   379→        </Card>
+   380→      </div>
+   381→
+   382→      {/* Bottom Row: Top Songs + Recent Activity */}
+   383→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+   384→        {/* Top Songs Table */}
+   385→        <Card className="bg-gray-900 border-gray-800 lg:col-span-2">
+   386→          <CardHeader className="pb-2">
+   387→            <div className="flex items-center justify-between">
+   388→              <div>
+   389→                <CardTitle className="text-white text-base">Músicas Mais Tocadas</CardTitle>
+   390→                <CardDescription className="text-gray-400 text-xs">
+   391→                  Top 5 músicas da plataforma
+   392→                </CardDescription>
+   393→              </div>
+   394→            </div>
+   395→          </CardHeader>
+   396→          <CardContent className="pt-0">
+   397→            <Table>
+   398→              <TableHeader>
+   399→                <TableRow className="border-gray-800 hover:bg-transparent">
+   400→                  <TableHead className="text-gray-400">#</TableHead>
+   401→                  <TableHead className="text-gray-400">Música</TableHead>
+   402→                  <TableHead className="text-gray-400">Artista</TableHead>
+   403→                  <TableHead className="text-gray-400">Gênero</TableHead>
+   404→                  <TableHead className="text-gray-400 text-right">Reproduções</TableHead>
+   405→                </TableRow>
+   406→              </TableHeader>
+   407→              <TableBody>
+   408→                {data.topSongs.map((song, i) => (
+   409→                  <TableRow key={song.id} className="border-gray-800">
+   410→                    <TableCell className="text-gray-400 font-medium">{i + 1}</TableCell>
+   411→                    <TableCell>
+   412→                      <div className="flex items-center gap-3">
+   413→                        <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center flex-shrink-0">
+   414→                          <Music className="w-4 h-4 text-emerald-400" />
+   415→                        </div>
+   416→                        <span className="text-white font-medium text-sm">{song.title}</span>
+   417→                      </div>
+   418→                    </TableCell>
+   419→                    <TableCell className="text-gray-300 text-sm">{song.artistName}</TableCell>
+   420→                    <TableCell>
+   421→                      <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">
+   422→                        {song.genre}
+   423→                      </Badge>
+   424→                    </TableCell>
+   425→                    <TableCell className="text-right text-gray-300 text-sm">
+   426→                      {formatPlayCount(song.playCount)}
+   427→                    </TableCell>
+   428→                  </TableRow>
+   429→                ))}
+   430→              </TableBody>
+   431→            </Table>
+   432→          </CardContent>
+   433→        </Card>
+   434→
+   435→        {/* Recent Activity */}
+   436→        <Card className="bg-gray-900 border-gray-800">
+   437→          <CardHeader className="pb-2">
+   438→            <CardTitle className="text-white text-base">Atividade Recente</CardTitle>
+   439→            <CardDescription className="text-gray-400 text-xs">Últimas ações no sistema</CardDescription>
+   440→          </CardHeader>
+   441→          <CardContent className="pt-0">
+   442→            <div className="space-y-3 max-h-96 overflow-y-auto">
+   443→              {recentActivity.map((activity) => (
+   444→                <div
+   445→                  key={activity.id}
+   446→                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-800/50 transition-colors"
+   447→                >
+   448→                  <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+   449→                    {activity.type === 'user' && <Users className="w-3.5 h-3.5 text-blue-400" />}
+   450→                    {activity.type === 'subscription' && <CreditCard className="w-3.5 h-3.5 text-emerald-400" />}
+   451→                    {activity.type === 'content' && <Music className="w-3.5 h-3.5 text-purple-400" />}
+   452→                    {activity.type === 'payment' && <DollarSign className="w-3.5 h-3.5 text-amber-400" />}
+   453→                    {activity.type === 'moderation' && <Shield className="w-3.5 h-3.5 text-red-400" />}
+   454→                    {activity.type === 'system' && <Settings className="w-3.5 h-3.5 text-gray-400" />}
+   455→                    {activity.type === 'creator' && <Mic2 className="w-3.5 h-3.5 text-pink-400" />}
+   456→                  </div>
+   457→                  <div className="min-w-0 flex-1">
+   458→                    <p className="text-gray-200 text-xs leading-snug">{activity.action}</p>
+   459→                    <p className="text-gray-500 text-xs mt-0.5">{activity.user} &middot; {activity.time}</p>
+   460→                  </div>
+   461→                </div>
+   462→              ))}
+   463→            </div>
+   464→          </CardContent>
+   465→        </Card>
+   466→      </div>
+   467→
+   468→      {/* Subscription Distribution */}
+   469→      <Card className="bg-gray-900 border-gray-800">
+   470→        <CardHeader className="pb-2">
+   471→          <CardTitle className="text-white text-base">Distribuição de Planos</CardTitle>
+   472→          <CardDescription className="text-gray-400 text-xs">Distribuição dos usuários por tipo de plano</CardDescription>
+   473→        </CardHeader>
+   474→        <CardContent className="pt-0">
+   475→          <div className="flex flex-col md:flex-row items-center gap-8">
+   476→            <div className="h-64 w-64 flex-shrink-0">
+   477→              <ResponsiveContainer width="100%" height="100%">
+   478→                <PieChart>
+   479→                  <Pie
+   480→                    data={pieData}
+   481→                    cx="50%"
+   482→                    cy="50%"
+   483→                    innerRadius={60}
+   484→                    outerRadius={100}
+   485→                    paddingAngle={3}
+   486→                    dataKey="value"
+   487→                  >
+   488→                    {pieData.map((entry, index) => (
+   489→                      <Cell key={`cell-${index}`} fill={entry.color} />
+   490→                    ))}
+   491→                  </Pie>
+   492→                  <Tooltip
+   493→                    contentStyle={{
+   494→                      backgroundColor: '#111827',
+   495→                      border: '1px solid #1f2937',
+   496→                      borderRadius: '8px',
+   497→                      color: '#f9fafb',
+   498→                    }}
+   499→                    formatter={(value: number) => [`${value}%`, 'Participação']}
+   500→                  />
+   501→                </PieChart>
+   502→              </ResponsiveContainer>
+   503→            </div>
+   504→            <div className="flex flex-col gap-3">
+   505→              {pieData.map((entry) => (
+   506→                <div key={entry.name} className="flex items-center gap-3">
+   507→                  <div
+   508→                    className="w-3 h-3 rounded-full flex-shrink-0"
+   509→                    style={{ backgroundColor: entry.color }}
+   510→                  />
+   511→                  <span className="text-gray-300 text-sm">{entry.name}</span>
+   512→                  <span className="text-white font-semibold text-sm ml-auto">{entry.value}%</span>
+   513→                </div>
+   514→              ))}
+   515→            </div>
+   516→          </div>
+   517→        </CardContent>
+   518→      </Card>
+   519→    </div>
+   520→  );
+   521→
+   522→  // ===== USERS VIEW =====
+   523→
+   524→  const renderUsers = () => (
+   525→    <div className="space-y-6">
+   526→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   527→        <div>
+   528→          <h2 className="text-white text-xl font-bold">Gerenciamento de Usuários</h2>
+   529→          <p className="text-gray-400 text-sm">Gerencie todos os usuários da plataforma</p>
+   530→        </div>
+   531→        <div className="flex items-center gap-3">
+   532→          <div className="relative">
+   533→            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+   534→            <Input
+   535→              placeholder="Buscar usuário..."
+   536→              value={userSearch}
+   537→              onChange={(e) => setUserSearch(e.target.value)}
+   538→              className="pl-9 bg-gray-800 border-gray-700 text-white placeholder-gray-500 w-64"
+   539→            />
+   540→          </div>
+   541→          <Select defaultValue="all">
+   542→            <SelectTrigger className="w-36 bg-gray-800 border-gray-700 text-white">
+   543→              <SelectValue placeholder="Filtrar" />
+   544→            </SelectTrigger>
+   545→            <SelectContent className="bg-gray-800 border-gray-700">
+   546→              <SelectItem value="all">Todos</SelectItem>
+   547→              <SelectItem value="free">Free</SelectItem>
+   548→              <SelectItem value="premium">Premium</SelectItem>
+   549→              <SelectItem value="creator">Criador</SelectItem>
+   550→            </SelectContent>
+   551→          </Select>
+   552→        </div>
+   553→      </div>
+   554→
+   555→      <Card className="bg-gray-900 border-gray-800">
+   556→        <CardContent className="p-0">
+   557→          <Table>
+   558→            <TableHeader>
+   559→              <TableRow className="border-gray-800 hover:bg-transparent">
+   560→                <TableHead className="text-gray-400">Usuário</TableHead>
+   561→                <TableHead className="text-gray-400">Email</TableHead>
+   562→                <TableHead className="text-gray-400">Função</TableHead>
+   563→                <TableHead className="text-gray-400">Plano</TableHead>
+   564→                <TableHead className="text-gray-400">Status</TableHead>
+   565→                <TableHead className="text-gray-400 text-right">Ações</TableHead>
+   566→              </TableRow>
+   567→            </TableHeader>
+   568→            <TableBody>
+   569→              {mockUsers
+   570→                .filter(
+   571→                  (u) =>
+   572→                    !userSearch ||
+   573→                    u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+   574→                    u.email.toLowerCase().includes(userSearch.toLowerCase())
+   575→                )
+   576→                .map((user) => (
+   577→                  <TableRow key={user.id} className="border-gray-800">
+   578→                    <TableCell>
+   579→                      <div className="flex items-center gap-3">
+   580→                        <Avatar className="w-8 h-8">
+   581→                          <AvatarFallback className="bg-gray-700 text-gray-300 text-xs">
+   582→                            {user.name
+   583→                              .split(' ')
+   584→                              .map((n) => n[0])
+   585→                              .join('')}
+   586→                          </AvatarFallback>
+   587→                        </Avatar>
+   588→                        <span className="text-white font-medium text-sm">{user.name}</span>
+   589→                      </div>
+   590→                    </TableCell>
+   591→                    <TableCell className="text-gray-300 text-sm">{user.email}</TableCell>
+   592→                    <TableCell>
+   593→                      <Badge
+   594→                        className={`text-xs ${
+   595→                          user.role === 'creator'
+   596→                            ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+   597→                            : user.role === 'premium'
+   598→                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+   599→                            : 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+   600→                        }`}
+   601→                      >
+   602→                        {user.role === 'creator' ? 'Criador' : user.role === 'premium' ? 'Premium' : 'Gratuito'}
+   603→                      </Badge>
+   604→                    </TableCell>
+   605→                    <TableCell className="text-gray-300 text-sm">{user.plan}</TableCell>
+   606→                    <TableCell>
+   607→                      <Badge
+   608→                        className={`text-xs ${
+   609→                          user.status === 'active'
+   610→                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+   611→                            : user.status === 'inactive'
+   612→                            ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+   613→                            : 'bg-red-500/20 text-red-400 border-red-500/30'
+   614→                        }`}
+   615→                      >
+   616→                        {user.status === 'active' ? 'Ativo' : user.status === 'inactive' ? 'Inativo' : 'Suspens'}
+   617→                      </Badge>
+   618→                    </TableCell>
+   619→                    <TableCell className="text-right">
+   620→                      <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-gray-800">
+   621→                        <MoreHorizontal className="w-4 h-4" />
+   622→                      </Button>
+   623→                    </TableCell>
+   624→                  </TableRow>
+   625→                ))}
+   626→            </TableBody>
+   627→          </Table>
+   628→        </CardContent>
+   629→      </Card>
+   630→    </div>
+   631→  );
+   632→
+   633→  // ===== SUBSCRIPTIONS VIEW =====
+   634→
+   635→  const renderSubscriptions = () => (
+   636→    <div className="space-y-6">
+   637→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   638→        <div>
+   639→          <h2 className="text-white text-xl font-bold">Assinaturas</h2>
+   640→          <p className="text-gray-400 text-sm">Gerencie as assinaturas dos usuários</p>
+   641→        </div>
+   642→        <div className="flex items-center gap-3">
+   643→          <Select defaultValue="all">
+   644→            <SelectTrigger className="w-40 bg-gray-800 border-gray-700 text-white">
+   645→              <SelectValue placeholder="Status" />
+   646→            </SelectTrigger>
+   647→            <SelectContent className="bg-gray-800 border-gray-700">
+   648→              <SelectItem value="all">Todas</SelectItem>
+   649→              <SelectItem value="active">Ativas</SelectItem>
+   650→              <SelectItem value="canceled">Canceladas</SelectItem>
+   651→              <SelectItem value="past_due">Vencidas</SelectItem>
+   652→            </SelectContent>
+   653→          </Select>
+   654→        </div>
+   655→      </div>
+   656→
+   657→      {/* Stats Row */}
+   658→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   659→        <Card className="bg-gray-900 border-gray-800">
+   660→          <CardContent className="p-4 flex items-center gap-4">
+   661→            <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+   662→              <CreditCard className="w-5 h-5 text-emerald-400" />
+   663→            </div>
+   664→            <div>
+   665→              <p className="text-gray-400 text-xs">Assinaturas Ativas</p>
+   666→              <p className="text-white text-xl font-bold">34.567</p>
+   667→            </div>
+   668→          </CardContent>
+   669→        </Card>
+   670→        <Card className="bg-gray-900 border-gray-800">
+   671→          <CardContent className="p-4 flex items-center gap-4">
+   672→            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+   673→              <DollarSign className="w-5 h-5 text-amber-400" />
+   674→            </div>
+   675→            <div>
+   676→              <p className="text-gray-400 text-xs">Receita Recorrente (MRR)</p>
+   677→              <p className="text-white text-xl font-bold">{formatCurrency(856234.5)}</p>
+   678→            </div>
+   679→          </CardContent>
+   680→        </Card>
+   681→        <Card className="bg-gray-900 border-gray-800">
+   682→          <CardContent className="p-4 flex items-center gap-4">
+   683→            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+   684→              <TrendingUp className="w-5 h-5 text-purple-400" />
+   685→            </div>
+   686→            <div>
+   687→              <p className="text-gray-400 text-xs">Taxa de Conversão</p>
+   688→              <p className="text-white text-xl font-bold">27.7%</p>
+   689→            </div>
+   690→          </CardContent>
+   691→        </Card>
+   692→      </div>
+   693→
+   694→      {/* Subscriptions Table */}
+   695→      <Card className="bg-gray-900 border-gray-800">
+   696→        <CardContent className="p-0">
+   697→          <Table>
+   698→            <TableHeader>
+   699→              <TableRow className="border-gray-800 hover:bg-transparent">
+   700→                <TableHead className="text-gray-400">Usuário</TableHead>
+   701→                <TableHead className="text-gray-400">Plano</TableHead>
+   702→                <TableHead className="text-gray-400">Valor</TableHead>
+   703→                <TableHead className="text-gray-400">Cobrança</TableHead>
+   704→                <TableHead className="text-gray-400">Status</TableHead>
+   705→                <TableHead className="text-gray-400">Próx. Cobrança</TableHead>
+   706→              </TableRow>
+   707→            </TableHeader>
+   708→            <TableBody>
+   709→              {mockSubscriptions.map((sub) => (
+   710→                <TableRow key={sub.id} className="border-gray-800">
+   711→                  <TableCell className="text-white font-medium text-sm">{sub.user}</TableCell>
+   712→                  <TableCell className="text-gray-300 text-sm">{sub.plan}</TableCell>
+   713→                  <TableCell className="text-gray-300 text-sm">{formatCurrency(sub.price)}</TableCell>
+   714→                  <TableCell>
+   715→                    <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">
+   716→                      {sub.billing}
+   717→                    </Badge>
+   718→                  </TableCell>
+   719→                  <TableCell>
+   720→                    <Badge
+   721→                      className={`text-xs ${
+   722→                        sub.status === 'active'
+   723→                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+   724→                          : sub.status === 'canceled'
+   725→                          ? 'bg-red-500/20 text-red-400 border-red-500/30'
+   726→                          : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+   727→                      }`}
+   728→                    >
+   729→                      {sub.status === 'active' ? 'Ativa' : sub.status === 'canceled' ? 'Cancelada' : 'Vencida'}
+   730→                    </Badge>
+   731→                  </TableCell>
+   732→                  <TableCell className="text-gray-300 text-sm">{sub.nextBilling}</TableCell>
+   733→                </TableRow>
+   734→              ))}
+   735→            </TableBody>
+   736→          </Table>
+   737→        </CardContent>
+   738→      </Card>
+   739→    </div>
+   740→  );
+   741→
+   742→  // ===== PLACEHOLDER VIEW =====
+   743→
+   744→  const renderPlaceholder = (title: string, description: string, icon: React.ElementType) => {
+   745→    const Icon = icon;
+   746→    return (
+   747→      <div className="flex flex-col items-center justify-center h-96 text-center">
+   748→        <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center mb-4">
+   749→          <Icon className="w-8 h-8 text-emerald-400" />
+   750→        </div>
+   751→        <h2 className="text-white text-xl font-bold mb-2">{title}</h2>
+   752→        <p className="text-gray-400 text-sm max-w-md">{description}</p>
+   753→        <Button className="mt-6 bg-emerald-500 hover:bg-emerald-600 text-white">
+   754→          Em breve
+   755→        </Button>
+   756→      </div>
+   757→    );
+   758→  };
+   759→
+   760→  // ===== RENDER ACTIVE VIEW =====
+   761→
+   762→  const renderActiveView = () => {
+   763→    switch (activeView) {
+   764→      case 'dashboard':
+   765→        return renderDashboard();
+   766→      case 'users':
+   767→        return renderUsers();
+   768→      case 'subscriptions':
+   769→        return renderSubscriptions();
+   770→      case 'payments':
+   771→        return renderPlaceholder(
+   772→          'Pagamentos',
+   773→          'Gerencie todos os pagamentos realizados na plataforma, incluindo PIX, cartão de crédito e boleto bancário.',
+   774→          DollarSign
+   775→        );
+   776→      case 'creators':
+   777→        return renderPlaceholder(
+   778→          'Criadores',
+   779→          'Gerencie os criadores de conteúdo da plataforma, verificação de artistas e métricas de desempenho.',
+   780→          Mic2
+   781→        );
+   782→      case 'songs':
+   783→        return renderPlaceholder(
+   784→          'Músicas',
+   785→          'Modere e gerencie o catálogo de músicas da plataforma, aprovações e remoções de conteúdo.',
+   786→          Music
+   787→        );
+   788→      case 'podcasts':
+   789→        return renderPlaceholder(
+   790→          'Podcasts',
+   791→          'Gerencie os podcasts disponíveis na plataforma, episódios e conteúdos exclusivos.',
+   792→          Radio
+   793→        );
+   794→      case 'lives':
+   795→        return renderPlaceholder(
+   796→          'Lives',
+   797→          'Gerencie as transmissões ao vivo, agendamentos e monitoramento de conteúdo.',
+   798→          Activity
+   799→        );
+   800→      case 'ads':
+   801→        return renderPlaceholder(
+   802→          'Anúncios',
+   803→          'Configure e gerencie os anúncios da plataforma, campanhas publicitárias e métricas.',
+   804→          Megaphone
+   805→        );
+   806→      case 'reports':
+   807→        return renderPlaceholder(
+   808→          'Relatórios',
+   809→          'Gere relatórios detalhados sobre usuários, receita, conteúdo e métricas de engajamento.',
+   810→          FileBarChart
+   811→        );
+   812→      case 'settings':
+   813→        return renderPlaceholder(
+   814→          'Configurações',
+   815→          'Configure as definições gerais da plataforma, notificações, integrações e segurança.',
+   816→          Settings
+   817→        );
+   818→      default:
+   819→        return renderDashboard();
+   820→    }
+   821→  };
+   822→
+   823→  // ===== MAIN RENDER =====
+   824→
+   825→  return (
+   826→    <div className="flex h-full min-h-screen bg-gray-950">
+   827→      {/* Sidebar */}
+   828→      {renderSidebar()}
+   829→
+   830→      {/* Main Content */}
+   831→      <main className="flex-1 flex flex-col overflow-hidden">
+   832→        {/* Header */}
+   833→        <header className="h-14 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm flex items-center justify-between px-6 flex-shrink-0">
+   834→          <div className="flex items-center gap-4">
+   835→            <h2 className="text-white font-semibold">
+   836→              {adminNavItems.find((i) => i.id === activeView)?.label || 'Dashboard'}
+   837→            </h2>
+   838→          </div>
+   839→          <div className="flex items-center gap-3">
+   840→            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-gray-800 relative">
+   841→              <Bell className="w-4 h-4" />
+   842→              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full" />
+   843→            </Button>
+   844→            <Avatar className="w-8 h-8">
+   845→              <AvatarFallback className="bg-emerald-500 text-white text-xs">AD</AvatarFallback>
+   846→            </Avatar>
+   847→          </div>
+   848→        </header>
+   849→
+   850→        {/* Content */}
+   851→        <div className="flex-1 overflow-y-auto p-6">
+   852→          {renderActiveView()}
+   853→        </div>
+   854→      </main>
+   855→    </div>
+   856→  );
+   857→}
+   858→

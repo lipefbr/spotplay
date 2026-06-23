@@ -301,6 +301,14 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isPlaying, currentSong, setProgress]);
 
+  // Handle successful login from API
+  const handleLoginSuccess = useCallback((user: UserType) => {
+    setUser(user);
+    setIsAuthenticated(true);
+    setView('home');
+    setShowAuthModal(false);
+  }, [setUser, setIsAuthenticated, setView, setShowAuthModal]);
+
   // Demo login handler
   const handleDemoLogin = useCallback((type: 'user' | 'admin') => {
     const demoUser = DEMO_USERS[type];
@@ -364,6 +372,7 @@ export default function Home() {
           }}
           mode={authMode}
           onDemoLogin={handleDemoLogin}
+          onLoginSuccess={handleLoginSuccess}
         />
       </div>
     );
@@ -398,6 +407,7 @@ export default function Home() {
         onOpenChange={setShowAuthModal}
         mode={authMode}
         onDemoLogin={handleDemoLogin}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );
