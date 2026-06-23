@@ -5,14 +5,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
   Volume2, VolumeX, Heart, Music2, Maximize2, ChevronDown,
-  Mic2, ListMusic, ChevronUp, X, Plus,
+  Mic2, ListMusic, ChevronUp, X, Plus, Radio,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useAppStore, usePlayerStore } from '@/stores/app-store';
 import { formatDuration, formatPlayCount } from '@/lib/asaas';
-import { mockLiveStreams, mockPodcasts, mockPlaylists } from '@/lib/mock-data';
+import { mockLiveStreams, mockPodcasts, mockPlaylists, mockSongs } from '@/lib/mock-data';
 import type { UserType } from '@/types';
 
 import LandingPage from '@/components/landing/LandingPage';
@@ -246,13 +246,22 @@ function FullPlayer() {
 
 // ===== LIVES VIEW =====
 function LivesView() {
+  const { setQueue } = usePlayerStore();
+
+  const handleLiveClick = () => {
+    setQueue(mockSongs, 0);
+  };
+
   return (
     <div className="px-4 pt-2 pb-8 lg:px-6">
       <h1 className="text-2xl font-bold text-white mb-6">Lives Agora</h1>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {mockLiveStreams.map((stream) => (
           <motion.div key={stream.id} whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-            <div className="group cursor-pointer overflow-hidden rounded-xl bg-gray-800/50 transition-colors hover:bg-gray-700/50">
+            <div
+              className="group cursor-pointer overflow-hidden rounded-xl bg-gray-800/50 transition-colors hover:bg-gray-700/50"
+              onClick={handleLiveClick}
+            >
               <div className="relative aspect-video">
                 <img src={stream.thumbnail} alt={stream.title} className="h-full w-full object-cover" />
                 {stream.isLive && (
@@ -263,10 +272,28 @@ function LivesView() {
                 <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
                   {formatPlayCount(stream.viewerCount)} assistindo
                 </div>
+                {/* Play overlay */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                  <Button
+                    size="lg"
+                    className="rounded-full bg-emerald-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 h-14 w-14"
+                    onClick={(e) => { e.stopPropagation(); handleLiveClick(); }}
+                  >
+                    <Play className="h-6 w-6 ml-0.5" fill="white" />
+                  </Button>
+                </div>
               </div>
               <div className="p-4">
                 <p className="text-base font-semibold text-white">{stream.title}</p>
                 <p className="text-sm text-gray-400 mt-1">{stream.artistName}</p>
+                <Button
+                  size="sm"
+                  className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs gap-1.5"
+                  onClick={(e) => { e.stopPropagation(); handleLiveClick(); }}
+                >
+                  <Radio className="h-3.5 w-3.5" />
+                  Ouvir Ao Vivo
+                </Button>
               </div>
             </div>
           </motion.div>

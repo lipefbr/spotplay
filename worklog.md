@@ -68,3 +68,25 @@ Stage Summary:
 - Profile page shows user playlists
 - Admin opens in new browser tab via /admin route
 - Admin ads section supports audio upload and campaign editing
+
+---
+Task ID: multi-fix-2
+Agent: main
+Task: Fix 6 bugs in SoundFlow music streaming platform
+
+Work Log:
+- Bug 1: Rewrote /admin/page.tsx - removed "Acesso Negado" blocking, added header bar with SoundFlow Admin logo + "Painel Administrativo" text + "Voltar ao App" link, reads soundflow-auth from localStorage with state.user.role check, shows red warning banner for non-admins but still renders AdminPanel
+- Bug 2: Fixed AdminPanel sidebar - changed aside from `top-0 h-screen` to `top-14 bottom-0` to sit below the /admin page header, changed main content from `flex-1` with `marginLeft` to `fixed top-14 bottom-0 right-0` with `left` offset for proper independent scrolling
+- Bug 3: Fixed "Criar Playlist" button in Sidebar.tsx - added onClick handler that calls `onPlaylistClick('new')`, which sets view to 'playlist' and selectedPlaylistId to 'new'. In PlaylistView.tsx, added CreatePlaylistForm component with name input, description textarea, public/private toggle switch. On submit shows toast "Playlist criada com sucesso!" and navigates to library view.
+- Bug 4: Fixed Lives not opening player - In page.tsx LivesView, added `usePlayerStore` and `mockSongs` imports, clicking live card calls `setQueue(mockSongs, 0)`, added "Ouvir Ao Vivo" button with red styling. In HomeView.tsx LiveCard, added play overlay on hover and "Ouvir Ao Vivo" button, onClick now calls `setQueue(mockSongs, 0)` instead of `setView('lives')`.
+- Bug 5: Made Creator panel placeholder views functional - Albums view groups mockSongs by albumName, shows grid of album cards with cover/name/artist/song count, "Criar Álbum" button, click album shows detail view with song list table. Podcasts view shows mockPodcasts in card grid with cover, title, description, category badge, "Novo Episódio" button. Lives view has "Agendar Live" form (title, description, datetime picker), shows scheduled/active lives from mockLiveStreams with status badges and action buttons. Added Calendar, Eye icons and Textarea, useToast imports.
+- Bug 6: Changed LandingPage footer text from "Pagamentos por Asaas | Feito com 💚 no Brasil" to "Pagamentos Online | Feito com 💚 no Brasil por Lipe.Host" with clickable link (href=https://lipe.host, target=_blank, rel=noopener noreferrer, text-emerald-400 hover:text-emerald-300 hover:underline)
+
+Stage Summary:
+- Admin panel accessible to all users with warning banner for non-admins
+- Admin sidebar properly fixed with independent content scrolling
+- "Criar Playlist" button creates new playlist with form dialog
+- Live stream cards start playback on click with "Ouvir Ao Vivo" button
+- Creator Albums/Podcasts/Lives views fully functional with mock data
+- Landing page footer updated with Lipe.Host link
+- All changes pass `bun run lint` with zero errors

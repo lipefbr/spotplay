@@ -967,9 +967,9 @@ function Footer() {
             &copy; {new Date().getFullYear()} SoundFlow. Todos os direitos reservados.
           </p>
           <div className="flex items-center gap-4 text-gray-600 text-xs">
-            <span>Pagamentos por Asaas</span>
+            <span>Pagamentos Online</span>
             <span className="text-white/10">|</span>
-            <span>Feito com 💚 no Brasil</span>
+            <span>Feito com 💚 no Brasil por <a href="https://lipe.host" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 hover:underline">Lipe.Host</a></span>
           </div>
         </div>
       </div>

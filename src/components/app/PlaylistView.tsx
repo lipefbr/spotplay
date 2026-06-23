@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Play,
@@ -11,17 +11,153 @@ import {
   Music2,
   ArrowLeft,
   Pause,
+  Plus,
+  Globe,
+  Lock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppStore } from '@/stores/app-store';
 import { usePlayerStore } from '@/stores/app-store';
 import { mockPlaylists, mockSongs } from '@/lib/mock-data';
 import { formatDuration, formatPlayCount } from '@/lib/asaas';
+import { useToast } from '@/hooks/use-toast';
 import type { SongType } from '@/types';
 
+// ===== CREATE PLAYLIST FORM =====
+function CreatePlaylistForm() {
+  const { setView, setSelectedPlaylistId } = useAppStore();
+  const { toast } = useToast();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    toast({
+      title: 'Playlist criada com sucesso!',
+      description: `"${name}" foi adicionada à sua biblioteca.`,
+    });
+    setSelectedPlaylistId(null);
+    setView('library');
+  };
+
+  return (
+    <div className="pb-8">
+      {/* Header */}
+      <div className="relative">
+        <div className="absolute inset-0 h-72 bg-gradient-to-b from-emerald-800/40 to-gray-950" style={{ zIndex: 0 }} />
+        <div className="relative z-10 px-4 pt-4 lg:px-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mb-4 text-gray-400 hover:text-white"
+            onClick={() => { setSelectedPlaylistId(null); setView('library'); }}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-end">
+            <div className="relative h-44 w-44 shrink-0 overflow-hidden rounded-lg shadow-2xl sm:h-52 sm:w-52 bg-gray-800 flex items-center justify-center">
+              <Plus className="h-16 w-16 text-emerald-400" />
+            </div>
+            <div className="text-center sm:text-left flex-1">
+              <Badge variant="outline" className="text-xs text-gray-300 border-gray-600 mb-2">
+                Nova Playlist
+              </Badge>
+              <h1 className="text-2xl font-bold text-white mb-2 lg:text-4xl">
+                Criar Playlist
+              </h1>
+              <p className="text-sm text-gray-300">
+                Monte sua playlist personalizada
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="px-4 lg:px-6 mt-6 max-w-xl">
+        <Card className="bg-gray-900/50 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-white text-lg">Detalhes da Playlist</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="playlist-name" className="text-gray-300">Nome da Playlist</Label>
+                <Input
+                  id="playlist-name"
+                  placeholder="Ex: Minhas Favoritas"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="playlist-desc" className="text-gray-300">Descrição</Label>
+                <Textarea
+                  id="playlist-desc"
+                  placeholder="O que torna esta playlist especial?"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-500 resize-none"
+                  rows={3}
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-gray-800/50 p-4">
+                <div className="flex items-center gap-3">
+                  {isPublic ? (
+                    <Globe className="h-5 w-5 text-emerald-400" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      {isPublic ? 'Pública' : 'Privada'}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {isPublic ? 'Qualquer pessoa pode encontrar' : 'Apenas você pode ver'}
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+              </div>
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  type="submit"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                  disabled={!name.trim()}
+                >
+                  Criar Playlist
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-gray-400 hover:text-white"
+                  onClick={() => { setSelectedPlaylistId(null); setView('library'); }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ===== MAIN PLAYLIST VIEW =====
 export default function PlaylistView() {
   const { selectedPlaylistId, setView } = useAppStore();
   const { currentSong, isPlaying, setQueue, togglePlay, setCurrentSong } = usePlayerStore();
@@ -58,6 +194,11 @@ export default function PlaylistView() {
     () => songs.reduce((acc, s) => acc + s.duration, 0),
     [songs]
   );
+
+  // Show create playlist form if selectedPlaylistId is 'new'
+  if (selectedPlaylistId === 'new') {
+    return <CreatePlaylistForm />;
+  }
 
   if (!playlist) {
     return (

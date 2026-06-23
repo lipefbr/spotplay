@@ -1,58 +1,71 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { Music2, Shield, ArrowLeft } from 'lucide-react';
 import AdminPanel from '@/components/admin/AdminPanel';
 
 const emptySubscribe = () => () => {};
 
-function checkAdminAuth(): { isAuth: boolean; loaded: boolean } {
-  if (typeof window === 'undefined') return { isAuth: false, loaded: false };
+function checkAdminAuth(): { isAdmin: boolean; loaded: boolean } {
+  if (typeof window === 'undefined') return { isAdmin: false, loaded: false };
   try {
     const raw = localStorage.getItem('soundflow-auth');
     if (raw) {
       const parsed = JSON.parse(raw);
       const state = parsed?.state;
-      if (state?.isAuthenticated && (state?.user?.role === 'admin' || state?.user?.role === 'moderator')) {
-        return { isAuth: true, loaded: true };
+      if (state?.isAuthenticated && state?.user?.role === 'admin') {
+        return { isAdmin: true, loaded: true };
       }
     }
   } catch {
     // ignore parse errors
   }
-  return { isAuth: false, loaded: true };
+  return { isAdmin: false, loaded: true };
 }
 
 export default function AdminPage() {
-  // Use useSyncExternalStore to avoid lint error with useEffect+setState
   const authState = useSyncExternalStore(
     emptySubscribe,
     () => checkAdminAuth(),
-    () => ({ isAuth: false, loaded: false })
+    () => ({ isAdmin: false, loaded: false })
   );
-
-  if (!authState.loaded) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-400 text-sm">Verificando autenticação...</div>
-      </div>
-    );
-  }
-
-  if (!authState.isAuth) {
-    return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Acesso Negado</h1>
-          <p className="text-gray-400 mb-4">Você precisa ser admin para acessar esta página.</p>
-          <a href="/" className="text-emerald-400 hover:underline">Voltar ao SoundFlow</a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <AdminPanel />
+      {/* Header Bar */}
+      <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-white/5 bg-gray-950/95 backdrop-blur-xl flex items-center justify-between px-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500">
+            <Music2 className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-lg font-bold text-white tracking-tight">SoundFlow Admin</span>
+          <span className="hidden sm:inline text-sm text-amber-400 font-medium">Painel Administrativo</span>
+        </div>
+        <a
+          href="/"
+          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Voltar ao App</span>
+        </a>
+      </header>
+
+      {/* Non-admin warning banner */}
+      {authState.loaded && !authState.isAdmin && (
+        <div className="fixed top-14 left-0 right-0 z-40 bg-red-500/10 border-b border-red-500/30 px-4 py-2 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <Shield className="h-4 w-4 text-red-400" />
+            <span className="text-sm text-red-400 font-medium">
+              Acesso restrito — Este painel é exclusivo para administradores.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Panel */}
+      <div className={authState.loaded && !authState.isAdmin ? 'pt-24' : 'pt-14'}>
+        <AdminPanel />
+      </div>
     </div>
   );
 }

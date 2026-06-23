@@ -180,10 +180,22 @@ function LiveCard({ stream, onClick }: { stream: typeof mockLiveStreams[0]; onCl
           <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
             {formatPlayCount(stream.viewerCount)} assistindo
           </div>
+          {/* Play overlay */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+            <div className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-500 shadow-lg opacity-0 transition-all translate-y-2 group-hover:opacity-100 group-hover:translate-y-0">
+              <Play className="h-4 w-4 text-white ml-0.5" fill="white" />
+            </div>
+          </div>
         </div>
         <div className="p-3">
           <p className="text-sm font-semibold text-white truncate">{stream.title}</p>
           <p className="text-xs text-gray-400 mt-1">{stream.artistName}</p>
+          <button
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-bold text-white hover:bg-red-700 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+          >
+            <Radio className="h-3 w-3" /> Ouvir Ao Vivo
+          </button>
         </div>
       </Card>
     </motion.div>
@@ -319,7 +331,7 @@ export default function HomeView() {
             key={stream.id}
             stream={stream}
             onClick={() => {
-              setView('lives');
+              setQueue(mockSongs, 0);
             }}
           />
         ))}

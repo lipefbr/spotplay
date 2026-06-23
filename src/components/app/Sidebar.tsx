@@ -200,7 +200,7 @@ function SidebarContent({
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
           Playlists
         </span>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-emerald-400">
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-emerald-400" onClick={() => onPlaylistClick('new')}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -236,7 +236,7 @@ function SidebarContent({
             </button>
           ))}
 
-          <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:text-emerald-400">
+          <button onClick={() => onPlaylistClick('new')} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-500 transition-colors hover:text-emerald-400">
             <div className="flex h-8 w-8 items-center justify-center rounded bg-gray-800">
               <Plus className="h-4 w-4" />
             </div>

@@ -35,6 +35,8 @@ import {
   CreditCard,
   RefreshCw,
   X,
+  Calendar,
+  Eye,
 } from 'lucide-react';
 import {
   LineChart,
@@ -75,8 +77,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { creatorAnalytics, mockSongs } from '@/lib/mock-data';
+import { creatorAnalytics, mockSongs, mockPodcasts, mockLiveStreams } from '@/lib/mock-data';
 import { formatCurrency, formatPlayCount } from '@/lib/asaas';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 // ===== SIDEBAR NAV ITEMS =====
 
@@ -138,6 +142,13 @@ export default function CreatorPanel() {
   const [activeView, setActiveView] = useState<CreatorView>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [showScheduleLiveModal, setShowScheduleLiveModal] = useState(false);
+  const [scheduleLiveForm, setScheduleLiveForm] = useState({
+    title: '',
+    description: '',
+    dateTime: '',
+  });
   const [uploadForm, setUploadForm] = useState({
     title: '',
     genre: '',
@@ -145,6 +156,7 @@ export default function CreatorPanel() {
     coverFile: null as File | null,
     audioFile: null as File | null,
   });
+  const { toast } = useToast();
 
   const data = creatorAnalytics;
 
@@ -1098,6 +1110,307 @@ export default function CreatorPanel() {
     </div>
   );
 
+  // ===== ALBUMS VIEW =====
+
+  const renderAlbums = () => {
+    // Group mockSongs by albumName
+    const albumMap = new Map<string, { albumName: string; artistName: string; coverUrl: string; songs: typeof mockSongs }>();
+    mockSongs.forEach((song) => {
+      const key = song.albumName || 'Single';
+      if (!albumMap.has(key)) {
+        albumMap.set(key, {
+          albumName: key,
+          artistName: song.artistName,
+          coverUrl: song.coverUrl || '',
+          songs: [],
+        });
+      }
+      albumMap.get(key)!.songs.push(song);
+    });
+    const albums = Array.from(albumMap.values());
+
+    // Show album detail if one is selected
+    if (selectedAlbumId) {
+      const album = albums.find((a) => a.albumName === selectedAlbumId);
+      if (album) {
+        return (
+          <div className="space-y-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-white mb-2"
+              onClick={() => setSelectedAlbumId(null)}
+            >
+              ← Voltar aos Álbuns
+            </Button>
+            <div className="flex flex-col sm:flex-row gap-6">
+              <img
+                src={album.coverUrl}
+                alt={album.albumName}
+                className="h-48 w-48 rounded-lg object-cover shrink-0"
+              />
+              <div>
+                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs mb-2">Álbum</Badge>
+                <h2 className="text-2xl font-bold text-white">{album.albumName}</h2>
+                <p className="text-gray-400 text-sm mt-1">{album.artistName} • {album.songs.length} músicas</p>
+              </div>
+            </div>
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-800 hover:bg-transparent">
+                      <TableHead className="text-gray-400">#</TableHead>
+                      <TableHead className="text-gray-400">Título</TableHead>
+                      <TableHead className="text-gray-400">Gênero</TableHead>
+                      <TableHead className="text-gray-400 text-right">Reproduções</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {album.songs.map((song, i) => (
+                      <TableRow key={song.id} className="border-gray-800">
+                        <TableCell className="text-gray-400 text-sm">{i + 1}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <img src={song.coverUrl} alt={song.title} className="w-8 h-8 rounded object-cover shrink-0" />
+                            <span className="text-white font-medium text-sm">{song.title}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">{song.genre}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-gray-300 text-sm">{formatPlayCount(song.playCount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        );
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-white text-xl font-bold">Álbuns</h2>
+            <p className="text-gray-400 text-sm">Gerencie seus álbuns, EPs e singles</p>
+          </div>
+          <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+            <Plus className="w-4 h-4 mr-2" />
+            Criar Álbum
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {albums.map((album) => (
+            <Card
+              key={album.albumName}
+              className="bg-gray-900 border-gray-800 cursor-pointer hover:border-emerald-500/30 transition-colors"
+              onClick={() => setSelectedAlbumId(album.albumName)}
+            >
+              <CardContent className="p-3">
+                <div className="aspect-square overflow-hidden rounded-lg mb-3">
+                  <img src={album.coverUrl} alt={album.albumName} className="h-full w-full object-cover" />
+                </div>
+                <p className="text-white text-sm font-semibold truncate">{album.albumName}</p>
+                <p className="text-gray-400 text-xs truncate">{album.artistName}</p>
+                <p className="text-gray-500 text-xs mt-1">{album.songs.length} músicas</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // ===== PODCASTS VIEW (CREATOR) =====
+
+  const renderCreatorPodcasts = () => (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-white text-xl font-bold">Podcasts</h2>
+          <p className="text-gray-400 text-sm">Crie e gerencie seus podcasts e episódios</p>
+        </div>
+        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+          <Plus className="w-4 h-4 mr-2" />
+          Novo Episódio
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {mockPodcasts.map((podcast) => (
+          <Card key={podcast.id} className="bg-gray-900 border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-4">
+                <img src={podcast.coverUrl} alt={podcast.title} className="w-20 h-20 rounded-lg object-cover shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-white font-semibold text-sm truncate">{podcast.title}</p>
+                  <p className="text-gray-400 text-xs mt-1 line-clamp-2">{podcast.description}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">{podcast.category}</Badge>
+                    {podcast.isExclusive && (
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">Exclusivo</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-4">
+                <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white text-xs">
+                  <Play className="w-3 h-3 mr-1" /> Episódios
+                </Button>
+                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ===== LIVES VIEW (CREATOR) =====
+
+  const renderCreatorLives = () => (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-white text-xl font-bold">Lives</h2>
+          <p className="text-gray-400 text-sm">Agende e gerencie transmissões ao vivo</p>
+        </div>
+        <Button
+          className="bg-emerald-500 hover:bg-emerald-600 text-white"
+          onClick={() => setShowScheduleLiveModal(true)}
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Agendar Live
+        </Button>
+      </div>
+
+      {/* Schedule Live Modal */}
+      {showScheduleLiveModal && (
+        <Card className="bg-gray-900 border-emerald-500/30 border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-base">Agendar Live</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                onClick={() => setShowScheduleLiveModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Título da Live</Label>
+              <Input
+                placeholder="Ex: Show Acústico Especial"
+                value={scheduleLiveForm.title}
+                onChange={(e) => setScheduleLiveForm({ ...scheduleLiveForm, title: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Descrição</Label>
+              <Textarea
+                placeholder="Do que será a transmissão?"
+                value={scheduleLiveForm.description}
+                onChange={(e) => setScheduleLiveForm({ ...scheduleLiveForm, description: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500 resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Data e Hora</Label>
+              <Input
+                type="datetime-local"
+                value={scheduleLiveForm.dateTime}
+                onChange={(e) => setScheduleLiveForm({ ...scheduleLiveForm, dateTime: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                disabled={!scheduleLiveForm.title.trim() || !scheduleLiveForm.dateTime}
+                onClick={() => {
+                  toast({
+                    title: 'Live agendada com sucesso!',
+                    description: `"${scheduleLiveForm.title}" foi agendada.`,
+                  });
+                  setShowScheduleLiveModal(false);
+                  setScheduleLiveForm({ title: '', description: '', dateTime: '' });
+                }}
+              >
+                Agendar
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-gray-400 hover:text-white"
+                onClick={() => setShowScheduleLiveModal(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Lives List */}
+      <div className="space-y-4">
+        {mockLiveStreams.map((stream) => (
+          <Card key={stream.id} className="bg-gray-900 border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <img src={stream.thumbnail} alt={stream.title} className="w-24 h-16 rounded-lg object-cover shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-white font-semibold text-sm truncate">{stream.title}</p>
+                    {stream.isLive && (
+                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs shrink-0">AO VIVO</Badge>
+                    )}
+                    {stream.isScheduled && (
+                      <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs shrink-0">Agendada</Badge>
+                    )}
+                  </div>
+                  <p className="text-gray-400 text-xs mt-1">{stream.artistName}</p>
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+                    {stream.isLive && (
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> {formatPlayCount(stream.viewerCount)} assistindo
+                      </span>
+                    )}
+                    {stream.isScheduled && stream.scheduledAt && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" /> {new Date(stream.scheduledAt).toLocaleString('pt-BR')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {stream.isLive ? (
+                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs">
+                      <Radio className="w-3 h-3 mr-1" /> Encerrar
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white text-xs">
+                      <MoreHorizontal className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
   // ===== PLACEHOLDER VIEW =====
 
   const renderPlaceholder = (title: string, description: string, icon: React.ElementType) => {
@@ -1125,23 +1438,11 @@ export default function CreatorPanel() {
       case 'music':
         return renderMusic();
       case 'albums':
-        return renderPlaceholder(
-          'Álbuns',
-          'Gerencie seus álbuns, EPs e singles. Crie novos lançamentos e acompanhe o desempenho.',
-          Disc3
-        );
+        return renderAlbums();
       case 'podcasts':
-        return renderPlaceholder(
-          'Podcasts',
-          'Crie e gerencie seus podcasts e episódios exclusivos para seus ouvintes.',
-          Radio
-        );
+        return renderCreatorPodcasts();
       case 'lives':
-        return renderPlaceholder(
-          'Lives',
-          'Agende e gerencie transmissões ao vivo. Interaja com seus fãs em tempo real.',
-          Activity
-        );
+        return renderCreatorLives();
       case 'analytics':
         return renderAnalytics();
       case 'financial':

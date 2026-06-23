@@ -338,7 +338,7 @@ function AdminSidebar({
 }) {
   return (
     <aside
-      className={`fixed left-0 top-0 h-screen z-40 flex flex-col bg-gray-900 border-r border-white/5 transition-all duration-300 ${
+      className={`fixed left-0 top-14 bottom-0 z-40 flex flex-col bg-gray-900 border-r border-white/5 transition-all duration-300 ${
         collapsed ? 'w-[68px]' : 'w-[240px]'
       }`}
     >
@@ -2332,8 +2332,8 @@ export default function AdminPanel() {
 
       {/* Main Content - scrollable independently */}
       <main
-        className="flex-1 overflow-y-auto transition-all duration-300"
-        style={{ marginLeft: sidebarCollapsed ? '68px' : '240px' }}
+        className="fixed top-14 bottom-0 right-0 overflow-y-auto transition-all duration-300"
+        style={{ left: sidebarCollapsed ? '68px' : '240px' }}
       >
         <div className="p-4 lg:p-6 max-w-7xl">
           {renderView()}
