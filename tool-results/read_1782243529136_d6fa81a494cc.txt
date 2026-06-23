@@ -1,0 +1,981 @@
+     1→'use client';
+     2→
+     3→import { useState, useEffect, useRef } from 'react';
+     4→import { motion, useInView, AnimatePresence } from 'framer-motion';
+     5→import {
+     6→  Music, Headphones, Download, Wifi, Zap, Star, Check, Play,
+     7→  ChevronRight, Menu, X, Volume2, Mic2, Radio, Users, GraduationCap,
+     8→  Heart, Smartphone, ArrowRight, Globe, Shield, Sparkles
+     9→} from 'lucide-react';
+    10→import { Button } from '@/components/ui/button';
+    11→import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+    12→import { Badge } from '@/components/ui/badge';
+    13→import { subscriptionPlans, genres } from '@/lib/mock-data';
+    14→
+    15→interface LandingPageProps {
+    16→  onGetStarted: () => void;
+    17→}
+    18→
+    19→// Animated section wrapper
+    20→function AnimatedSection({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+    21→  const ref = useRef(null);
+    22→  const isInView = useInView(ref, { once: true, margin: '-80px' });
+    23→
+    24→  return (
+    25→    <motion.div
+    26→      ref={ref}
+    27→      initial={{ opacity: 0, y: 40 }}
+    28→      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+    29→      transition={{ duration: 0.7, delay, ease: 'easeOut' }}
+    30→      className={className}
+    31→    >
+    32→      {children}
+    33→    </motion.div>
+    34→  );
+    35→}
+    36→
+    37→// Navigation Bar
+    38→function NavBar({ onGetStarted }: { onGetStarted: () => void }) {
+    39→  const [scrolled, setScrolled] = useState(false);
+    40→  const [mobileOpen, setMobileOpen] = useState(false);
+    41→
+    42→  useEffect(() => {
+    43→    const handleScroll = () => setScrolled(window.scrollY > 20);
+    44→    window.addEventListener('scroll', handleScroll);
+    45→    return () => window.removeEventListener('scroll', handleScroll);
+    46→  }, []);
+    47→
+    48→  return (
+    49→    <motion.nav
+    50→      initial={{ y: -100 }}
+    51→      animate={{ y: 0 }}
+    52→      transition={{ duration: 0.5 }}
+    53→      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+    54→        scrolled ? 'bg-gray-950/90 backdrop-blur-xl border-b border-white/5 shadow-2xl' : 'bg-transparent'
+    55→      }`}
+    56→    >
+    57→      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    58→        <div className="flex items-center justify-between h-16 md:h-20">
+    59→          {/* Logo */}
+    60→          <div className="flex items-center gap-2">
+    61→            <div className="w-9 h-9 bg-gradient-to-br from-emerald-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+    62→              <Music className="w-5 h-5 text-white" />
+    63→            </div>
+    64→            <span className="text-xl font-bold text-white tracking-tight">SoundFlow</span>
+    65→          </div>
+    66→
+    67→          {/* Desktop Links */}
+    68→          <div className="hidden md:flex items-center gap-8">
+    69→            {['Recursos', 'Gêneros', 'Planos', 'Criadores'].map((item) => (
+    70→              <a
+    71→                key={item}
+    72→                href={`#${item.toLowerCase()}`}
+    73→                className="text-sm text-gray-300 hover:text-emerald-400 transition-colors duration-200"
+    74→              >
+    75→                {item}
+    76→              </a>
+    77→            ))}
+    78→          </div>
+    79→
+    80→          {/* Desktop Buttons */}
+    81→          <div className="hidden md:flex items-center gap-3">
+    82→            <Button
+    83→              variant="ghost"
+    84→              className="text-gray-300 hover:text-white hover:bg-white/10"
+    85→              onClick={onGetStarted}
+    86→            >
+    87→              Entrar
+    88→            </Button>
+    89→            <Button
+    90→              className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:shadow-emerald-500/40"
+    91→              onClick={onGetStarted}
+    92→            >
+    93→              Começar Grátis
+    94→            </Button>
+    95→          </div>
+    96→
+    97→          {/* Mobile Menu Button */}
+    98→          <button
+    99→            className="md:hidden text-white p-2"
+   100→            onClick={() => setMobileOpen(!mobileOpen)}
+   101→          >
+   102→            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+   103→          </button>
+   104→        </div>
+   105→      </div>
+   106→
+   107→      {/* Mobile Menu */}
+   108→      <AnimatePresence>
+   109→        {mobileOpen && (
+   110→          <motion.div
+   111→            initial={{ opacity: 0, height: 0 }}
+   112→            animate={{ opacity: 1, height: 'auto' }}
+   113→            exit={{ opacity: 0, height: 0 }}
+   114→            className="md:hidden bg-gray-950/95 backdrop-blur-xl border-b border-white/5"
+   115→          >
+   116→            <div className="px-4 py-4 space-y-3">
+   117→              {['Recursos', 'Gêneros', 'Planos', 'Criadores'].map((item) => (
+   118→                <a
+   119→                  key={item}
+   120→                  href={`#${item.toLowerCase()}`}
+   121→                  className="block text-gray-300 hover:text-emerald-400 py-2 transition-colors"
+   122→                  onClick={() => setMobileOpen(false)}
+   123→                >
+   124→                  {item}
+   125→                </a>
+   126→              ))}
+   127→              <div className="pt-3 flex flex-col gap-2">
+   128→                <Button variant="ghost" className="text-gray-300 hover:text-white w-full" onClick={onGetStarted}>Entrar</Button>
+   129→                <Button className="bg-emerald-500 hover:bg-emerald-600 text-white w-full font-semibold" onClick={onGetStarted}>Começar Grátis</Button>
+   130→              </div>
+   131→            </div>
+   132→          </motion.div>
+   133→        )}
+   134→      </AnimatePresence>
+   135→    </motion.nav>
+   136→  );
+   137→}
+   138→
+   139→// Hero Section
+   140→function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
+   141→  return (
+   142→    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+   143→      {/* Background */}
+   144→      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950" />
+   145→      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.15),transparent_60%)]" />
+   146→      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(5,150,105,0.1),transparent_50%)]" />
+   147→
+   148→      {/* Floating music notes animation */}
+   149→      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+   150→        {[...Array(6)].map((_, i) => (
+   151→          <motion.div
+   152→            key={i}
+   153→            className="absolute text-emerald-500/10"
+   154→            initial={{
+   155→              x: `${15 + i * 15}%`,
+   156→              y: '100%',
+   157→              scale: 0.5 + Math.random() * 0.5,
+   158→              rotate: Math.random() * 360,
+   159→            }}
+   160→            animate={{
+   161→              y: '-10%',
+   162→              rotate: Math.random() * 720,
+   163→            }}
+   164→            transition={{
+   165→              duration: 15 + Math.random() * 10,
+   166→              repeat: Infinity,
+   167→              delay: i * 2,
+   168→              ease: 'linear',
+   169→            }}
+   170→          >
+   171→            <Music className="w-8 h-8 md:w-12 md:h-12" />
+   172→          </motion.div>
+   173→        ))}
+   174→      </div>
+   175→
+   176→      {/* Grid overlay */}
+   177→      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:64px_64px]" />
+   178→
+   179→      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center pt-20">
+   180→        <motion.div
+   181→          initial={{ opacity: 0, y: 30 }}
+   182→          animate={{ opacity: 1, y: 0 }}
+   183→          transition={{ duration: 0.8, delay: 0.2 }}
+   184→        >
+   185→          <Badge className="mb-6 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-4 py-1.5 text-sm">
+   186→            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+   187→            A revolução da música brasileira
+   188→          </Badge>
+   189→        </motion.div>
+   190→
+   191→        <motion.h1
+   192→          initial={{ opacity: 0, y: 30 }}
+   193→          animate={{ opacity: 1, y: 0 }}
+   194→          transition={{ duration: 0.8, delay: 0.4 }}
+   195→          className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white leading-tight tracking-tight"
+   196→        >
+   197→          Sua música,{' '}
+   198→          <span className="bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400 bg-clip-text text-transparent">
+   199→            sem limites
+   200→          </span>
+   201→        </motion.h1>
+   202→
+   203→        <motion.p
+   204→          initial={{ opacity: 0, y: 30 }}
+   205→          animate={{ opacity: 1, y: 0 }}
+   206→          transition={{ duration: 0.8, delay: 0.6 }}
+   207→          className="mt-6 text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed"
+   208→        >
+   209→          Milhões de músicas, podcasts e lives ao vivo. Recomendações com IA,
+   210→          áudio Hi-Fi e download offline. Tudo sem anúncios.
+   211→        </motion.p>
+   212→
+   213→        <motion.div
+   214→          initial={{ opacity: 0, y: 30 }}
+   215→          animate={{ opacity: 1, y: 0 }}
+   216→          transition={{ duration: 0.8, delay: 0.8 }}
+   217→          className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+   218→        >
+   219→          <Button
+   220→            size="lg"
+   221→            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg px-8 py-6 rounded-full shadow-2xl shadow-emerald-500/30 transition-all duration-300 hover:shadow-emerald-500/50 hover:scale-105 group"
+   222→            onClick={onGetStarted}
+   223→          >
+   224→            Começar Grátis
+   225→            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+   226→          </Button>
+   227→          <Button
+   228→            size="lg"
+   229→            variant="outline"
+   230→            className="text-white border-white/20 hover:bg-white/10 font-semibold text-lg px-8 py-6 rounded-full group"
+   231→          >
+   232→            <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+   233→            Ouça Agora
+   234→          </Button>
+   235→        </motion.div>
+   236→
+   237→        {/* Stats */}
+   238→        <motion.div
+   239→          initial={{ opacity: 0, y: 30 }}
+   240→          animate={{ opacity: 1, y: 0 }}
+   241→          transition={{ duration: 0.8, delay: 1.0 }}
+   242→          className="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto"
+   243→        >
+   244→          {[
+   245→            { value: '80M+', label: 'Músicas' },
+   246→            { value: '5M+', label: 'Artistas' },
+   247→            { value: '100M+', label: 'Ouvintes' },
+   248→          ].map((stat) => (
+   249→            <div key={stat.label} className="text-center">
+   250→              <div className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</div>
+   251→              <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
+   252→            </div>
+   253→          ))}
+   254→        </motion.div>
+   255→
+   256→        {/* Hero Image / Player Preview */}
+   257→        <motion.div
+   258→          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+   259→          animate={{ opacity: 1, y: 0, scale: 1 }}
+   260→          transition={{ duration: 1, delay: 1.2 }}
+   261→          className="mt-16 relative max-w-3xl mx-auto"
+   262→        >
+   263→          <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-emerald-500/10 border border-white/10">
+   264→            <img
+   265→              src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&h=600&fit=crop"
+   266→              alt="SoundFlow Player"
+   267→              className="w-full h-auto object-cover"
+   268→            />
+   269→            {/* Overlay player */}
+   270→            <div className="absolute inset-0 bg-gradient-to-t from-gray-950/90 via-gray-950/40 to-transparent" />
+   271→            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+   272→              <div className="flex items-center gap-4 bg-gray-900/80 backdrop-blur-xl rounded-xl p-3 sm:p-4 border border-white/10">
+   273→                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden flex-shrink-0">
+   274→                  <img
+   275→                    src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=100&fit=crop"
+   276→                    alt="Album"
+   277→                    className="w-full h-full object-cover"
+   278→                  />
+   279→                </div>
+   280→                <div className="flex-1 min-w-0">
+   281→                  <p className="text-white font-semibold text-sm sm:text-base truncate">Noites de São Paulo</p>
+   282→                  <p className="text-gray-400 text-xs sm:text-sm truncate">Lucas Mendes • Urbanidade</p>
+   283→                </div>
+   284→                <Button size="icon" className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full w-10 h-10 sm:w-12 sm:h-12 shadow-lg shadow-emerald-500/30 flex-shrink-0">
+   285→                  <Play className="w-5 h-5 ml-0.5" />
+   286→                </Button>
+   287→              </div>
+   288→            </div>
+   289→          </div>
+   290→        </motion.div>
+   291→      </div>
+   292→    </section>
+   293→  );
+   294→}
+   295→
+   296→// Features Section
+   297→function FeaturesSection() {
+   298→  const features = [
+   299→    {
+   300→      icon: <Zap className="w-6 h-6" />,
+   301→      title: 'IA de Recomendações',
+   302→      description: 'Nossa IA aprende seu gosto musical e sugere faixas perfeitas para cada momento do seu dia.',
+   303→      color: 'from-emerald-500 to-green-400',
+   304→      bgColor: 'bg-emerald-500/10',
+   305→      iconColor: 'text-emerald-400',
+   306→    },
+   307→    {
+   308→      icon: <Download className="w-6 h-6" />,
+   309→      title: 'Download Offline',
+   310→      description: 'Baixe suas músicas e playlists favoritas para ouvir sem conexão, onde quer que vá.',
+   311→      color: 'from-cyan-500 to-blue-400',
+   312→      bgColor: 'bg-cyan-500/10',
+   313→      iconColor: 'text-cyan-400',
+   314→    },
+   315→    {
+   316→      icon: <Headphones className="w-6 h-6" />,
+   317→      title: 'Áudio Hi-Fi',
+   318→      description: 'Qualidade de áudio sem perdas (FLAC) para uma experiência sonora incomparável.',
+   319→      color: 'from-purple-500 to-pink-400',
+   320→      bgColor: 'bg-purple-500/10',
+   321→      iconColor: 'text-purple-400',
+   322→    },
+   323→    {
+   324→      icon: <Radio className="w-6 h-6" />,
+   325→      title: 'Podcasts & Lives',
+   326→      description: 'Podcasts exclusivos e transmissões ao vivo com seus artistas favoritos.',
+   327→      color: 'from-orange-500 to-amber-400',
+   328→      bgColor: 'bg-orange-500/10',
+   329→      iconColor: 'text-orange-400',
+   330→    },
+   331→    {
+   332→      icon: <Shield className="w-6 h-6" />,
+   333→      title: 'Sem Anúncios',
+   334→      description: 'Ouça suas músicas sem interrupções. Apenas música, do começo ao fim.',
+   335→      color: 'from-rose-500 to-red-400',
+   336→      bgColor: 'bg-rose-500/10',
+   337→      iconColor: 'text-rose-400',
+   338→    },
+   339→    {
+   340→      icon: <Mic2 className="w-6 h-6" />,
+   341→      title: 'Letras em Tempo Real',
+   342→      description: 'Acompanhe as letras sincronizadas enquanto ouve suas músicas favoritas.',
+   343→      color: 'from-teal-500 to-emerald-400',
+   344→      bgColor: 'bg-teal-500/10',
+   345→      iconColor: 'text-teal-400',
+   346→    },
+   347→  ];
+   348→
+   349→  return (
+   350→    <section id="recursos" className="py-20 md:py-32 relative">
+   351→      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 via-gray-900/50 to-gray-950" />
+   352→      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   353→        <AnimatedSection className="text-center mb-16">
+   354→          <Badge className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+   355→            Recursos
+   356→          </Badge>
+   357→          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">
+   358→            Tudo que você precisa para{' '}
+   359→            <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+   360→              ouvir mais
+   361→            </span>
+   362→          </h2>
+   363→          <p className="mt-4 text-gray-400 text-lg max-w-2xl mx-auto">
+   364→            Ferramentas poderosas para transformar sua experiência musical
+   365→          </p>
+   366→        </AnimatedSection>
+   367→
+   368→        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+   369→          {features.map((feature, index) => (
+   370→            <AnimatedSection key={feature.title} delay={index * 0.1}>
+   371→              <Card className="bg-gray-900/50 border-white/5 hover:border-emerald-500/20 transition-all duration-300 group h-full hover:shadow-lg hover:shadow-emerald-500/5">
+   372→                <CardHeader>
+   373→                  <div className={`w-12 h-12 rounded-xl ${feature.bgColor} flex items-center justify-center ${feature.iconColor} mb-3 group-hover:scale-110 transition-transform duration-300`}>
+   374→                    {feature.icon}
+   375→                  </div>
+   376→                  <h3 className="text-xl font-bold text-white">{feature.title}</h3>
+   377→                </CardHeader>
+   378→                <CardContent>
+   379→                  <p className="text-gray-400 leading-relaxed">{feature.description}</p>
+   380→                </CardContent>
+   381→              </Card>
+   382→            </AnimatedSection>
+   383→          ))}
+   384→        </div>
+   385→      </div>
+   386→    </section>
+   387→  );
+   388→}
+   389→
+   390→// Genre Showcase Section
+   391→function GenreSection() {
+   392→  return (
+   393→    <section id="gêneros" className="py-20 md:py-32 relative">
+   394→      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 to-gray-900/80" />
+   395→      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   396→        <AnimatedSection className="text-center mb-16">
+   397→          <Badge className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+   398→            Gêneros
+   399→          </Badge>
+   400→          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">
+   401→            Explore todos os{' '}
+   402→            <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+   403→              estilos
+   404→            </span>
+   405→          </h2>
+   406→          <p className="mt-4 text-gray-400 text-lg max-w-2xl mx-auto">
+   407→            Do MPB ao Funk, do Sertanejo à Eletrônica — tem música para todos os gostos
+   408→          </p>
+   409→        </AnimatedSection>
+   410→
+   411→        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+   412→          {genres.map((genre, index) => (
+   413→            <AnimatedSection key={genre.name} delay={index * 0.05}>
+   414→              <div className="group relative overflow-hidden rounded-2xl cursor-pointer aspect-square">
+   415→                <img
+   416→                  src={genre.image}
+   417→                  alt={genre.name}
+   418→                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+   419→                />
+   420→                <div className={`absolute inset-0 bg-gradient-to-t ${genre.color} opacity-60 group-hover:opacity-80 transition-opacity duration-300`} />
+   421→                <div className="absolute inset-0 flex items-center justify-center">
+   422→                  <span className="text-white font-bold text-lg sm:text-xl drop-shadow-lg">
+   423→                    {genre.name}
+   424→                  </span>
+   425→                </div>
+   426→              </div>
+   427→            </AnimatedSection>
+   428→          ))}
+   429→        </div>
+   430→      </div>
+   431→    </section>
+   432→  );
+   433→}
+   434→
+   435→// How It Works Section
+   436→function HowItWorksSection() {
+   437→  const steps = [
+   438→    {
+   439→      number: '01',
+   440→      icon: <Users className="w-8 h-8" />,
+   441→      title: 'Crie sua conta',
+   442→      description: 'Cadastre-se gratuitamente em segundos. Sem cartão de crédito necessário.',
+   443→    },
+   444→    {
+   445→      number: '02',
+   446→      icon: <Star className="w-8 h-8" />,
+   447→      title: 'Escolha seu plano',
+   448→      description: 'Do gratuito ao Premium Família — escolha o que combina com você.',
+   449→    },
+   450→    {
+   451→      number: '03',
+   452→      icon: <Headphones className="w-8 h-8" />,
+   453→      title: 'Ouça sem limites',
+   454→      description: 'Milhões de músicas, podcasts e lives ao seu alcance.',
+   455→    },
+   456→  ];
+   457→
+   458→  return (
+   459→    <section className="py-20 md:py-32 relative">
+   460→      <div className="absolute inset-0 bg-gradient-to-b from-gray-900/80 via-gray-950 to-gray-950" />
+   461→      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+   462→        <AnimatedSection className="text-center mb-16">
+   463→          <Badge className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+   464→            Simples assim
+   465→          </Badge>
+   466→          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">
+   467→            Como{' '}
+   468→            <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+   469→              funciona
+   470→            </span>
+   471→          </h2>
+   472→        </AnimatedSection>
+   473→
+   474→        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+   475→          {steps.map((step, index) => (
+   476→            <AnimatedSection key={step.number} delay={index * 0.15}>
+   477→              <div className="text-center group">
+   478→                <div className="relative mx-auto mb-6">
+   479→                  <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto group-hover:bg-emerald-500/20 transition-colors duration-300">
+   480→                    {step.icon}
+   481→                  </div>
+   482→                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 text-white text-sm font-bold rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30">
+   483→                    {step.number}
+   484→                  </span>
+   485→                </div>
+   486→                <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
+   487→                <p className="text-gray-400 leading-relaxed">{step.description}</p>
+   488→                {index < steps.length - 1 && (
+   489→                  <div className="hidden md:block absolute top-10 right-0 translate-x-1/2">
+   490→                    <ChevronRight className="w-6 h-6 text-emerald-500/40" />
+   491→                  </div>
+   492→                )}
+   493→              </div>
+   494→            </AnimatedSection>
+   495→          ))}
+   496→        </div>
+   497→      </div>
+   498→    </section>
+   499→  );
+   500→}
+   501→
+   502→// Pricing Section
+   503→function PricingSection({ onGetStarted }: { onGetStarted: () => void }) {
+   504→  const planIcons: Record<string, React.ReactNode> = {
+   505→    free: <Music className="w-5 h-5" />,
+   506→    premium_individual: <Headphones className="w-5 h-5" />,
+   507→    premium_duo: <Users className="w-5 h-5" />,
+   508→    premium_familia: <Heart className="w-5 h-5" />,
+   509→    premium_estudante: <GraduationCap className="w-5 h-5" />,
+   510→  };
+   511→
+   512→  return (
+   513→    <section id="planos" className="py-20 md:py-32 relative">
+   514→      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 via-gray-900/50 to-gray-950" />
+   515→      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.05),transparent_70%)]" />
+   516→      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   517→        <AnimatedSection className="text-center mb-16">
+   518→          <Badge className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+   519→            Planos
+   520→          </Badge>
+   521→          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">
+   522→            Escolha seu{' '}
+   523→            <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+   524→              plano
+   525→            </span>
+   526→          </h2>
+   527→          <p className="mt-4 text-gray-400 text-lg max-w-2xl mx-auto">
+   528→            Comece grátis. Upgrade quando quiser. Cancele a qualquer momento.
+   529→          </p>
+   530→        </AnimatedSection>
+   531→
+   532→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-5">
+   533→          {subscriptionPlans.map((plan, index) => (
+   534→            <AnimatedSection key={plan.id} delay={index * 0.08}>
+   535→              <Card
+   536→                className={`relative bg-gray-900/50 border-white/5 h-full flex flex-col transition-all duration-300 hover:shadow-lg ${
+   537→                  plan.popular
+   538→                    ? 'border-emerald-500/40 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 scale-[1.02] md:scale-105'
+   539→                    : 'hover:border-white/10'
+   540→                }`}
+   541→              >
+   542→                {plan.popular && (
+   543→                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+   544→                    <Badge className="bg-emerald-500 text-white border-0 px-3 py-1 shadow-lg shadow-emerald-500/30">
+   545→                      <Star className="w-3 h-3 mr-1" />
+   546→                      Mais Popular
+   547→                    </Badge>
+   548→                  </div>
+   549→                )}
+   550→                <CardHeader className="pb-2">
+   551→                  <div className="flex items-center gap-2 mb-2">
+   552→                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+   553→                      plan.popular ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-gray-400'
+   554→                    }`}>
+   555→                      {planIcons[plan.id] || <Music className="w-5 h-5" />}
+   556→                    </div>
+   557→                    <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+   558→                  </div>
+   559→                  <div className="flex items-baseline gap-1">
+   560→                    <span className="text-3xl font-extrabold text-white">
+   561→                      R${plan.price.toFixed(2).replace('.', ',')}
+   562→                    </span>
+   563→                    {plan.price > 0 && (
+   564→                      <span className="text-gray-500 text-sm">/mês</span>
+   565→                    )}
+   566→                  </div>
+   567→                </CardHeader>
+   568→                <CardContent className="flex-1">
+   569→                  <ul className="space-y-2.5">
+   570→                    {plan.features.map((feature) => (
+   571→                      <li key={feature} className="flex items-start gap-2 text-sm">
+   572→                        <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+   573→                          plan.popular ? 'text-emerald-400' : 'text-gray-500'
+   574→                        }`} />
+   575→                        <span className="text-gray-300">{feature}</span>
+   576→                      </li>
+   577→                    ))}
+   578→                  </ul>
+   579→                </CardContent>
+   580→                <CardFooter>
+   581→                  <Button
+   582→                    className={`w-full font-semibold transition-all duration-200 ${
+   583→                      plan.popular
+   584→                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40'
+   585→                        : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'
+   586→                    }`}
+   587→                    onClick={onGetStarted}
+   588→                  >
+   589→                    {plan.price === 0 ? 'Começar Grátis' : 'Assinar Agora'}
+   590→                  </Button>
+   591→                </CardFooter>
+   592→              </Card>
+   593→            </AnimatedSection>
+   594→          ))}
+   595→        </div>
+   596→
+   597→        <AnimatedSection className="mt-8 text-center">
+   598→          <p className="text-gray-500 text-sm">
+   599→            Pagamento via PIX ou cartão. Processado com segurança pela Asaas.
+   600→          </p>
+   601→        </AnimatedSection>
+   602→      </div>
+   603→    </section>
+   604→  );
+   605→}
+   606→
+   607→// Creator Section
+   608→function CreatorSection({ onGetStarted }: { onGetStarted: () => void }) {
+   609→  return (
+   610→    <section id="criadores" className="py-20 md:py-32 relative">
+   611→      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 to-gray-900/80" />
+   612→      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   613→        <div className="grid md:grid-cols-2 gap-12 items-center">
+   614→          <AnimatedSection>
+   615→            <Badge className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+   616→              Para Artistas
+   617→            </Badge>
+   618→            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight">
+   619→              Compartilhe sua música com o{' '}
+   620→              <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+   621→                Brasil
+   622→              </span>
+   623→            </h2>
+   624→            <p className="mt-4 text-gray-400 text-lg leading-relaxed">
+   625→              Junte-se a milhares de artistas independentes que já estão no SoundFlow.
+   626→              Publique suas músicas, faça lives, crie podcasts e ganhe dinheiro com
+   627→              sua arte.
+   628→            </p>
+   629→            <ul className="mt-6 space-y-3">
+   630→              {[
+   631→                'Dashboard completa com analytics',
+   632→                'Monetização por streams e lives',
+   633→                'Saque direto via PIX',
+   634→                'Suporte dedicado para artistas',
+   635→                'Ferramentas de promoção',
+   636→              ].map((item) => (
+   637→                <li key={item} className="flex items-center gap-3 text-gray-300">
+   638→                  <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+   639→                  {item}
+   640→                </li>
+   641→              ))}
+   642→            </ul>
+   643→            <div className="mt-8">
+   644→              <Button
+   645→                size="lg"
+   646→                className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:shadow-emerald-500/40 group"
+   647→                onClick={onGetStarted}
+   648→              >
+   649→                Seja um Criador
+   650→                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+   651→              </Button>
+   652→            </div>
+   653→          </AnimatedSection>
+   654→
+   655→          <AnimatedSection delay={0.2}>
+   656→            <div className="relative">
+   657→              <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-3xl blur-2xl" />
+   658→              <div className="relative rounded-2xl overflow-hidden border border-white/10">
+   659→                <img
+   660→                  src="https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=600&h=500&fit=crop"
+   661→                  alt="Criador SoundFlow"
+   662→                  className="w-full h-auto object-cover"
+   663→                />
+   664→                <div className="absolute inset-0 bg-gradient-to-t from-gray-950/80 to-transparent" />
+   665→                <div className="absolute bottom-4 left-4 right-4">
+   666→                  <div className="bg-gray-900/80 backdrop-blur-xl rounded-xl p-4 border border-white/10">
+   667→                    <div className="flex items-center justify-between mb-3">
+   668→                      <span className="text-emerald-400 text-sm font-semibold">Analytics do Criador</span>
+   669→                      <Badge className="bg-emerald-500/20 text-emerald-400 border-0 text-xs">Ao Vivo</Badge>
+   670→                    </div>
+   671→                    <div className="grid grid-cols-3 gap-3">
+   672→                      <div className="text-center">
+   673→                        <p className="text-white font-bold text-lg">45K</p>
+   674→                        <p className="text-gray-500 text-xs">Ouvintes</p>
+   675→                      </div>
+   676→                      <div className="text-center">
+   677→                        <p className="text-white font-bold text-lg">1.2M</p>
+   678→                        <p className="text-gray-500 text-xs">Streams</p>
+   679→                      </div>
+   680→                      <div className="text-center">
+   681→                        <p className="text-white font-bold text-lg">R$3.4K</p>
+   682→                        <p className="text-gray-500 text-xs">Receita</p>
+   683→                      </div>
+   684→                    </div>
+   685→                  </div>
+   686→                </div>
+   687→              </div>
+   688→            </div>
+   689→          </AnimatedSection>
+   690→        </div>
+   691→      </div>
+   692→    </section>
+   693→  );
+   694→}
+   695→
+   696→// Testimonials Section
+   697→function TestimonialsSection() {
+   698→  const testimonials = [
+   699→    {
+   700→      name: 'Ana Beatriz',
+   701→      role: 'Ouvinte Premium',
+   702→      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
+   703→      text: 'O SoundFlow mudou minha relação com música. As recomendações com IA são incríveis, sempre acertam!',
+   704→      rating: 5,
+   705→    },
+   706→    {
+   707→      name: 'Carlos Eduardo',
+   708→      role: 'Ouvinte Duo',
+   709→      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+   710→      text: 'O plano Duo é perfeito para mim e minha esposa. Compartilhamos playlists e economizamos!',
+   711→      rating: 5,
+   712→    },
+   713→    {
+   714→      name: 'Marina Oliveira',
+   715→      role: 'Criadora',
+   716→      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+   717→      text: 'Como artista independente, o SoundFlow me deu visibilidade que nunca tive. Recebo por PIX direitinho!',
+   718→      rating: 5,
+   719→    },
+   720→    {
+   721→      name: 'Rafael Santos',
+   722→      role: 'Ouvinte Estudante',
+   723→      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=face',
+   724→      text: 'O desconto estudante é ótimo! Áudio Hi-Fi e offline por menos de 12 reais? Imbatível.',
+   725→      rating: 5,
+   726→    },
+   727→  ];
+   728→
+   729→  return (
+   730→    <section className="py-20 md:py-32 relative">
+   731→      <div className="absolute inset-0 bg-gradient-to-b from-gray-900/80 via-gray-950 to-gray-950" />
+   732→      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+   733→        <AnimatedSection className="text-center mb-16">
+   734→          <Badge className="mb-4 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+   735→            Depoimentos
+   736→          </Badge>
+   737→          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white">
+   738→            O que nossos{' '}
+   739→            <span className="bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent">
+   740→              ouvintes
+   741→            </span>{' '}
+   742→            dizem
+   743→          </h2>
+   744→        </AnimatedSection>
+   745→
+   746→        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+   747→          {testimonials.map((testimonial, index) => (
+   748→            <AnimatedSection key={testimonial.name} delay={index * 0.1}>
+   749→              <Card className="bg-gray-900/50 border-white/5 h-full hover:border-emerald-500/10 transition-colors duration-300">
+   750→                <CardContent className="p-6">
+   751→                  <div className="flex items-center gap-1 mb-4">
+   752→                    {[...Array(testimonial.rating)].map((_, i) => (
+   753→                      <Star key={i} className="w-4 h-4 fill-emerald-400 text-emerald-400" />
+   754→                    ))}
+   755→                  </div>
+   756→                  <p className="text-gray-300 leading-relaxed mb-6">&ldquo;{testimonial.text}&rdquo;</p>
+   757→                  <div className="flex items-center gap-3">
+   758→                    <img
+   759→                      src={testimonial.avatar}
+   760→                      alt={testimonial.name}
+   761→                      className="w-10 h-10 rounded-full object-cover"
+   762→                    />
+   763→                    <div>
+   764→                      <p className="text-white font-semibold text-sm">{testimonial.name}</p>
+   765→                      <p className="text-gray-500 text-xs">{testimonial.role}</p>
+   766→                    </div>
+   767→                  </div>
+   768→                </CardContent>
+   769→              </Card>
+   770→            </AnimatedSection>
+   771→          ))}
+   772→        </div>
+   773→      </div>
+   774→    </section>
+   775→  );
+   776→}
+   777→
+   778→// Download/App Section
+   779→function DownloadSection({ onGetStarted }: { onGetStarted: () => void }) {
+   780→  return (
+   781→    <section className="py-20 md:py-32 relative">
+   782→      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 to-gray-900/80" />
+   783→      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+   784→        <AnimatedSection>
+   785→          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-green-600 to-teal-700 p-8 md:p-16">
+   786→            {/* Background pattern */}
+   787→            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:32px_32px]" />
+   788→            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.1),transparent_60%)]" />
+   789→
+   790→            <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+   791→              <div className="flex-1 text-center md:text-left">
+   792→                <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
+   793→                  Ouça em qualquer dispositivo
+   794→                </h2>
+   795→                <p className="mt-4 text-emerald-100/80 text-lg leading-relaxed">
+   796→                  Disponível para iOS, Android, desktop e web. Suas playlists
+   797→                  sincronizam automaticamente em todos os seus dispositivos.
+   798→                </p>
+   799→                <div className="mt-6 flex items-center gap-4 justify-center md:justify-start">
+   800→                  <Button
+   801→                    size="lg"
+   802→                    className="bg-white text-emerald-700 hover:bg-gray-100 font-bold rounded-full shadow-xl transition-all duration-200 hover:scale-105"
+   803→                    onClick={onGetStarted}
+   804→                  >
+   805→                    <Smartphone className="w-5 h-5 mr-2" />
+   806→                    Baixar App
+   807→                  </Button>
+   808→                  <Button
+   809→                    size="lg"
+   810→                    variant="outline"
+   811→                    className="text-white border-white/30 hover:bg-white/10 font-semibold rounded-full"
+   812→                    onClick={onGetStarted}
+   813→                  >
+   814→                    <Globe className="w-5 h-5 mr-2" />
+   815→                    Web Player
+   816→                  </Button>
+   817→                </div>
+   818→                <div className="mt-6 flex items-center gap-6 justify-center md:justify-start text-white/60 text-sm">
+   819→                  <div className="flex items-center gap-1.5">
+   820→                    <Volume2 className="w-4 h-4" />
+   821→                    Áudio Hi-Fi
+   822→                  </div>
+   823→                  <div className="flex items-center gap-1.5">
+   824→                    <Download className="w-4 h-4" />
+   825→                    Offline
+   826→                  </div>
+   827→                  <div className="flex items-center gap-1.5">
+   828→                    <Wifi className="w-4 h-4" />
+   829→                    Sincronização
+   830→                  </div>
+   831→                </div>
+   832→              </div>
+   833→
+   834→              <div className="flex-shrink-0">
+   835→                <div className="relative">
+   836→                  {/* Phone mockup */}
+   837→                  <div className="w-48 h-80 md:w-56 md:h-96 bg-gray-950 rounded-[2rem] border-4 border-gray-800 shadow-2xl overflow-hidden">
+   838→                    <div className="w-full h-full bg-gradient-to-b from-gray-900 to-gray-950 flex flex-col">
+   839→                      {/* Status bar */}
+   840→                      <div className="flex items-center justify-between px-4 py-2">
+   841→                        <span className="text-[10px] text-white/60">9:41</span>
+   842→                        <div className="flex items-center gap-1">
+   843→                          <Wifi className="w-2.5 h-2.5 text-white/60" />
+   844→                          <Volume2 className="w-2.5 h-2.5 text-white/60" />
+   845→                        </div>
+   846→                      </div>
+   847→                      {/* Content */}
+   848→                      <div className="flex-1 flex flex-col items-center justify-center px-4">
+   849→                        <div className="w-24 h-24 md:w-28 md:h-28 rounded-xl overflow-hidden shadow-xl mb-4">
+   850→                          <img
+   851→                            src="https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=200&h=200&fit=crop"
+   852→                            alt="Now Playing"
+   853→                            className="w-full h-full object-cover"
+   854→                          />
+   855→                        </div>
+   856→                        <p className="text-white text-xs md:text-sm font-semibold truncate max-w-full">Noites de São Paulo</p>
+   857→                        <p className="text-gray-400 text-[10px] md:text-xs truncate max-w-full">Lucas Mendes</p>
+   858→                        {/* Progress bar */}
+   859→                        <div className="w-full mt-4 h-1 bg-white/10 rounded-full overflow-hidden">
+   860→                          <div className="h-full w-2/3 bg-emerald-400 rounded-full" />
+   861→                        </div>
+   862→                        {/* Controls */}
+   863→                        <div className="flex items-center justify-center gap-4 mt-3">
+   864→                          <div className="w-6 h-6 rounded-full flex items-center justify-center">
+   865→                            <Music className="w-3 h-3 text-white/60" />
+   866→                          </div>
+   867→                          <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+   868→                            <Play className="w-4 h-4 text-white ml-0.5" />
+   869→                          </div>
+   870→                          <div className="w-6 h-6 rounded-full flex items-center justify-center">
+   871→                            <Heart className="w-3 h-3 text-white/60" />
+   872→                          </div>
+   873→                        </div>
+   874→                      </div>
+   875→                    </div>
+   876→                  </div>
+   877→                </div>
+   878→              </div>
+   879→            </div>
+   880→          </div>
+   881→        </AnimatedSection>
+   882→      </div>
+   883→    </section>
+   884→  );
+   885→}
+   886→
+   887→// Footer
+   888→function Footer() {
+   889→  return (
+   890→    <footer className="relative border-t border-white/5 bg-gray-950">
+   891→      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+   892→        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+   893→          {/* Company */}
+   894→          <div className="col-span-2 md:col-span-1">
+   895→            <div className="flex items-center gap-2 mb-4">
+   896→              <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-green-600 rounded-xl flex items-center justify-center">
+   897→                <Music className="w-4 h-4 text-white" />
+   898→              </div>
+   899→              <span className="text-lg font-bold text-white">SoundFlow</span>
+   900→            </div>
+   901→            <p className="text-gray-500 text-sm leading-relaxed">
+   902→              A plataforma de streaming que conecta a música brasileira ao mundo.
+   903→            </p>
+   904→          </div>
+   905→
+   906→          {/* Links */}
+   907→          <div>
+   908→            <h4 className="text-white font-semibold text-sm mb-4">Produto</h4>
+   909→            <ul className="space-y-2">
+   910→              {['Recursos', 'Planos', 'Download', 'Web Player'].map((item) => (
+   911→                <li key={item}>
+   912→                  <a href="#" className="text-gray-500 hover:text-emerald-400 text-sm transition-colors">
+   913→                    {item}
+   914→                  </a>
+   915→                </li>
+   916→              ))}
+   917→            </ul>
+   918→          </div>
+   919→
+   920→          <div>
+   921→            <h4 className="text-white font-semibold text-sm mb-4">Comunidade</h4>
+   922→            <ul className="space-y-2">
+   923→              {['Para Artistas', 'Desenvolvedores', 'Publicidade', 'Investidores'].map((item) => (
+   924→                <li key={item}>
+   925→                  <a href="#" className="text-gray-500 hover:text-emerald-400 text-sm transition-colors">
+   926→                    {item}
+   927→                  </a>
+   928→                </li>
+   929→              ))}
+   930→            </ul>
+   931→          </div>
+   932→
+   933→          <div>
+   934→            <h4 className="text-white font-semibold text-sm mb-4">Suporte</h4>
+   935→            <ul className="space-y-2">
+   936→              {['Ajuda', 'Contato', 'Termos de Uso', 'Privacidade'].map((item) => (
+   937→                <li key={item}>
+   938→                  <a href="#" className="text-gray-500 hover:text-emerald-400 text-sm transition-colors">
+   939→                    {item}
+   940→                  </a>
+   941→                </li>
+   942→              ))}
+   943→            </ul>
+   944→          </div>
+   945→        </div>
+   946→
+   947→        <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+   948→          <p className="text-gray-600 text-sm">
+   949→            &copy; {new Date().getFullYear()} SoundFlow. Todos os direitos reservados.
+   950→          </p>
+   951→          <div className="flex items-center gap-4 text-gray-600 text-xs">
+   952→            <span>Pagamentos por Asaas</span>
+   953→            <span className="text-white/10">|</span>
+   954→            <span>Feito com 💚 no Brasil</span>
+   955→          </div>
+   956→        </div>
+   957→      </div>
+   958→    </footer>
+   959→  );
+   960→}
+   961→
+   962→// Main Landing Page
+   963→export default function LandingPage({ onGetStarted }: LandingPageProps) {
+   964→  return (
+   965→    <div className="min-h-screen flex flex-col bg-gray-950">
+   966→      <NavBar onGetStarted={onGetStarted} />
+   967→      <main className="flex-1">
+   968→        <HeroSection onGetStarted={onGetStarted} />
+   969→        <FeaturesSection />
+   970→        <GenreSection />
+   971→        <HowItWorksSection />
+   972→        <PricingSection onGetStarted={onGetStarted} />
+   973→        <CreatorSection onGetStarted={onGetStarted} />
+   974→        <TestimonialsSection />
+   975→        <DownloadSection onGetStarted={onGetStarted} />
+   976→      </main>
+   977→      <Footer />
+   978→    </div>
+   979→  );
+   980→}
+   981→

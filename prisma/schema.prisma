@@ -1,0 +1,545 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== USER SYSTEM =====
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  username      String?  @unique
+  password      String?
+  avatar        String?
+  bio           String?
+  role          String   @default("free") // free, premium, creator, moderator, admin
+  plan          String   @default("free") // free, premium_individual, premium_duo, premium_familia, premium_estudante
+  isVerified    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  googleId      String?
+  facebookId    String?
+  appleId       String?
+  twoFactorSecret String?
+  twoFactorEnabled Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  playlists       Playlist[]
+  followers       Follow[]      @relation("UserFollowers")
+  following       Follow[]      @relation("UserFollowing")
+  artistFollowers ArtistFollow[]
+  likedSongs      Like[]
+  comments        Comment[]
+  listeningHistory ListeningHistory[]
+  notifications   Notification[]
+  payments        Payment[]
+  subscription    Subscription?
+  reports         Report[]      @relation("Reporter")
+  artistProfile   Artist?
+  messagesSent    Message[]     @relation("MessageSender")
+  messagesReceived Message[]    @relation("MessageReceiver")
+  playlistCollaborators PlaylistCollaborator[]
+  deviceSessions  DeviceSession[]
+  donations       Donation[]
+}
+
+model Artist {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  stageName   String
+  avatar      String?
+  banner      String?
+  bio         String?
+  genre       String?
+  country     String?
+  verified    Boolean  @default(false)
+  monthlyListeners Int    @default(0)
+  totalPlays  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songs       Song[]
+  albums      Album[]
+  followers   ArtistFollow[]
+  liveStreams LiveStream[]
+  podcasts    Podcast[]
+  analytics   CreatorAnalytics[]
+  withdrawals Withdrawal[]
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model ArtistFollow {
+  id          String   @id @default(cuid())
+  userId      String
+  artistId    String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, artistId])
+}
+
+// ===== MUSIC SYSTEM =====
+
+model Song {
+  id            String   @id @default(cuid())
+  title         String
+  artistId      String
+  albumId       String?
+  duration      Int      @default(0) // seconds
+  audioUrl      String
+  coverUrl      String?
+  lyrics        String?
+  syncedLyrics  String?  // JSON format for timed lyrics
+  genre         String?
+  mood          String?
+  isrc          String?
+  playCount     Int      @default(0)
+  likeCount     Int      @default(0)
+  commentCount  Int      @default(0)
+  isExplicit    Boolean  @default(false)
+  status        String   @default("pending") // pending, approved, rejected, removed
+  releaseDate   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  artist        Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  album         Album?   @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  likes         Like[]
+  comments      Comment[]
+  history       ListeningHistory[]
+  playlistSongs PlaylistSong[]
+  adPlacements  AdPlacement[]
+
+  @@index([title])
+  @@index([artistId])
+  @@index([genre])
+}
+
+model Album {
+  id          String   @id @default(cuid())
+  title       String
+  artistId    String
+  coverUrl    String?
+  type        String   @default("album") // album, single, ep
+  genre       String?
+  releaseDate DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  songs       Song[]
+}
+
+// ===== PLAYLIST SYSTEM =====
+
+model Playlist {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  coverUrl    String?
+  isPublic    Boolean  @default(true)
+  isCollaborative Boolean @default(false)
+  playCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songs       PlaylistSong[]
+  collaborators PlaylistCollaborator[]
+  tags         PlaylistTag[]
+
+  @@index([userId])
+}
+
+model PlaylistSong {
+  id         String   @id @default(cuid())
+  playlistId String
+  songId     String
+  position   Int      @default(0)
+  addedAt    DateTime @default(now())
+
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  song       Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, songId])
+}
+
+model PlaylistCollaborator {
+  id         String   @id @default(cuid())
+  playlistId String
+  userId     String
+  canEdit    Boolean  @default(true)
+  addedAt    DateTime @default(now())
+
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, userId])
+}
+
+model PlaylistTag {
+  id         String   @id @default(cuid())
+  playlistId String
+  tag        String
+
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+}
+
+// ===== LIKE & COMMENT =====
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  songId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  songId    String?
+  podcastId String?
+  liveId    String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song      Song?    @relation(fields: [songId], references: [id], onDelete: Cascade)
+}
+
+// ===== LISTENING HISTORY =====
+
+model ListeningHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  songId    String
+  playedAt  DateTime @default(now())
+  duration  Int      @default(0) // how long listened in seconds
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([userId, playedAt])
+}
+
+// ===== PODCAST SYSTEM =====
+
+model Podcast {
+  id          String   @id @default(cuid())
+  artistId    String
+  title       String
+  description String?
+  coverUrl    String?
+  category    String?
+  isExclusive Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  episodes    PodcastEpisode[]
+}
+
+model PodcastEpisode {
+  id          String   @id @default(cuid())
+  podcastId   String
+  title       String
+  description String?
+  audioUrl    String
+  duration    Int      @default(0)
+  thumbnail   String?
+  playCount   Int      @default(0)
+  season      Int?
+  episode     Int?
+  isExclusive Boolean  @default(false)
+  releaseDate DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  podcast     Podcast  @relation(fields: [podcastId], references: [id], onDelete: Cascade)
+}
+
+// ===== LIVE STREAMING =====
+
+model LiveStream {
+  id          String   @id @default(cuid())
+  artistId    String
+  title       String
+  description String?
+  thumbnail   String?
+  streamUrl   String?
+  isLive      Boolean  @default(false)
+  isScheduled Boolean  @default(false)
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  endedAt     DateTime?
+  viewerCount Int      @default(0)
+  maxViewers  Int      @default(0)
+  isRecording Boolean  @default(false)
+  recordingUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  chatMessages LiveChatMessage[]
+  donations   Donation[]
+}
+
+model LiveChatMessage {
+  id         String   @id @default(cuid())
+  liveId     String
+  userId     String
+  message    String
+  isSuper    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  liveStream LiveStream @relation(fields: [liveId], references: [id], onDelete: Cascade)
+}
+
+model Donation {
+  id         String   @id @default(cuid())
+  liveId     String
+  userId     String
+  amount     Float
+  message    String?
+  createdAt  DateTime @default(now())
+
+  liveStream LiveStream @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ===== SUBSCRIPTION & PAYMENT =====
+
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  plan            String   @default("free")
+  status          String   @default("active") // active, canceled, expired, past_due
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  trialEndDate    DateTime?
+  autoRenew       Boolean  @default(true)
+  asaasId         String?  // Asaas subscription ID
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        Payment[]
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  subscriptionId  String?
+  amount          Float
+  currency        String   @default("BRL")
+  method          String?  // pix, credit_card, debit_card
+  status          String   @default("pending") // pending, confirmed, failed, refunded
+  asaasId         String?  // Asaas payment ID
+  pixCode         String?  // PIX copy-paste code
+  pixQrCode       String?  // PIX QR code base64
+  cardInfo        String?  // Last 4 digits etc
+  dueDate         DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+}
+
+// ===== ADVERTISEMENT SYSTEM =====
+
+model AdCampaign {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("audio") // audio, video, banner, popup, fullscreen
+  mediaUrl    String?
+  targetUrl   String?
+  duration    Int      @default(30) // seconds
+  countries   String?  // comma-separated country codes
+  ageMin      Int      @default(13)
+  ageMax      Int      @default(65)
+  gender      String?  // male, female, all
+  startHour   Int      @default(0)
+  endHour     Int      @default(23)
+  frequency   Int      @default(3) // play after every N songs
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  budget      Float?
+  spent       Float    @default(0)
+  isActive    Boolean  @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  placements  AdPlacement[]
+}
+
+model AdPlacement {
+  id          String   @id @default(cuid())
+  campaignId  String
+  songId      String?
+  playedAt    DateTime @default(now())
+
+  campaign    AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  song        Song?     @relation(fields: [songId], references: [id], onDelete: SetNull)
+}
+
+// ===== NOTIFICATION SYSTEM =====
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // new_follower, new_song, new_episode, live_started, renewal, etc.
+  title     String
+  message   String
+  data      String?  // JSON
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+// ===== MODERATION =====
+
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String
+  targetType  String   // user, song, comment, playlist, podcast
+  targetId    String
+  reason      String
+  description String?
+  status      String   @default("pending") // pending, reviewed, resolved, dismissed
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reporter    User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+}
+
+// ===== MESSAGING =====
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender     User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, receiverId])
+}
+
+// ===== ANALYTICS =====
+
+model CreatorAnalytics {
+  id             String   @id @default(cuid())
+  artistId       String
+  date           DateTime
+  uniqueListeners Int     @default(0)
+  totalPlays     Int      @default(0)
+  totalMinutes   Int      @default(0)
+  revenue        Float    @default(0)
+  topCountries   String?  // JSON
+  topDevices     String?  // JSON
+  createdAt      DateTime @default(now())
+
+  artist         Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([artistId, date])
+}
+
+model AdminAnalytics {
+  id              String   @id @default(cuid())
+  date            DateTime @unique
+  activeUsers     Int      @default(0)
+  newUsers        Int      @default(0)
+  premiumUsers    Int      @default(0)
+  totalRevenue    Float    @default(0)
+  subscriptionRevenue Float @default(0)
+  adRevenue       Float    @default(0)
+  songsPlayed     Int      @default(0)
+  podcastsPlayed  Int      @default(0)
+  conversionRate  Float    @default(0)
+  createdAt       DateTime @default(now())
+}
+
+// ===== DEVICE SESSION =====
+
+model DeviceSession {
+  id          String   @id @default(cuid())
+  userId      String
+  device      String?
+  platform    String?
+  lastActive  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ===== WITHDRAWAL =====
+
+model Withdrawal {
+  id          String   @id @default(cuid())
+  artistId    String
+  amount      Float
+  status      String   @default("pending") // pending, approved, processing, completed, rejected
+  method      String?  // pix, bank_transfer
+  pixKey      String?
+  bankInfo    String?  // JSON
+  requestedAt DateTime @default(now())
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  artist      Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+}
+
+// ===== COUPON =====
+
+model Coupon {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  discount    Float    // percentage
+  maxUses     Int?
+  usedCount   Int      @default(0)
+  validFrom   DateTime?
+  validUntil  DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
