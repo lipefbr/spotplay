@@ -76,7 +76,7 @@ function MiniPlayerBar() {
   if (!currentSong) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 h-10 border-t border-white/5 bg-gray-950/95 backdrop-blur-xl flex items-center px-3 gap-3">
+    <div className="fixed bottom-0 right-0 z-50 h-10 border-t border-white/5 bg-gray-950/95 backdrop-blur-xl flex items-center px-3 gap-3 lg:left-64 left-0">
       <Avatar className="h-7 w-7 rounded shrink-0">
         <AvatarImage src={currentSong.coverUrl} alt={currentSong.title} />
         <AvatarFallback className="bg-emerald-700 text-white rounded">
@@ -120,7 +120,7 @@ function PlayerBar() {
   const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-gray-950/95 backdrop-blur-xl">
+    <div className="fixed bottom-0 right-0 z-50 border-t border-white/5 bg-gray-950/95 backdrop-blur-xl lg:left-64 left-0">
       <div
         className="h-1 w-full bg-gray-800 cursor-pointer group"
         onClick={(e) => {
@@ -505,9 +505,9 @@ export default function Home() {
   // App view
   return (
     <div className="flex h-screen flex-col bg-gray-950 text-white">
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden lg:ml-64">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto pb-20">
+        <main className="flex-1 overflow-y-auto lg:pb-24 pb-16">
           <AnimatePresence mode="wait">
             <motion.div
               key={view}
