@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { motion } from 'framer-motion';
 import {
   Home,
   Search,
@@ -107,32 +106,26 @@ function SidebarContent({
       </div>
 
       {/* Scrollable nav items */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
 
       {/* Main Navigation */}
       <nav className="px-3 pb-2">
         {mainItems.map((item) => {
           const isActive = view === item.id;
           return (
-            <motion.button
+            <button
               key={item.id}
               onClick={() => onNavClick(item.id)}
               className={`flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive ? 'text-emerald-400' : 'text-gray-400 hover:text-white'
+                isActive ? 'text-emerald-400 bg-emerald-400/10' : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
-              whileHover={{ x: 2 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             >
-              <item.icon className={`h-5 w-5 ${isActive ? 'text-emerald-400' : ''}`} />
-              {item.label}
+              <item.icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-emerald-400' : ''}`} />
+              <span className="truncate">{item.label}</span>
               {isActive && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400"
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                />
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
               )}
-            </motion.button>
+            </button>
           );
         })}
       </nav>
@@ -143,18 +136,16 @@ function SidebarContent({
           {extraItems.map((item) => {
             const isActive = view === item.id;
             return (
-              <motion.button
+              <button
                 key={item.id}
                 onClick={() => onNavClick(item.id)}
                 className={`flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  isActive ? 'text-emerald-400' : 'text-gray-400 hover:text-white'
+                  isActive ? 'text-emerald-400 bg-emerald-400/10' : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
-                whileHover={{ x: 2 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               >
-                <item.icon className={`h-5 w-5 ${isActive ? 'text-emerald-400' : ''}`} />
-                {item.label}
-              </motion.button>
+                <item.icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-emerald-400' : ''}`} />
+                <span className="truncate">{item.label}</span>
+              </button>
             );
           })}
         </nav>
@@ -168,28 +159,26 @@ function SidebarContent({
             {specialItems.map((item) => {
               const isActive = view === item.id;
               return (
-                <motion.button
+                <button
                   key={item.id}
                   onClick={() => onNavClick(item.id)}
                   className={`flex w-full items-center gap-4 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                    isActive ? 'text-amber-400' : 'text-gray-500 hover:text-gray-300'
+                    isActive ? 'text-amber-400 bg-amber-400/10' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                   }`}
-                  whileHover={{ x: 2 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                 >
-                  <item.icon className={`h-4 w-4 ${isActive ? 'text-amber-400' : ''}`} />
-                  {item.label}
+                  <item.icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-amber-400' : ''}`} />
+                  <span className="truncate">{item.label}</span>
                   {item.id === 'admin' && (
-                    <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0">
+                    <Badge className="ml-auto bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0 shrink-0">
                       {userRole === 'admin' ? 'Admin' : 'Mod'}
                     </Badge>
                   )}
                   {item.id === 'creator' && (
-                    <Badge className="ml-auto bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-1.5 py-0">
+                    <Badge className="ml-auto bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-1.5 py-0 shrink-0">
                       Studio
                     </Badge>
                   )}
-                </motion.button>
+                </button>
               );
             })}
           </nav>
@@ -208,7 +197,7 @@ function SidebarContent({
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 px-3">
+      <ScrollArea className="flex-1 px-3 overflow-x-hidden">
         <div className="space-y-0.5 pb-4">
           <button
             onClick={onLikedClick}
@@ -345,7 +334,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden lg:flex w-64 flex-col border-r border-gray-800 fixed left-0 top-0 bottom-0 z-40">
+      <aside className="hidden lg:flex w-64 flex-col border-r border-gray-800 fixed left-0 top-0 bottom-0 z-40 overflow-hidden">
         <SidebarContent {...sidebarProps} />
       </aside>
 
