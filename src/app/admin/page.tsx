@@ -1,12 +1,18 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
 import { Music2, Shield, ArrowLeft } from 'lucide-react';
 import AdminPanel from '@/components/admin/AdminPanel';
 
-const emptySubscribe = () => () => {};
+interface AuthState {
+  isAdmin: boolean;
+  loaded: boolean;
+}
 
-function checkAdminAuth(): { isAdmin: boolean; loaded: boolean } {
+// Module-level cache so the result is stable across renders
+let _authCache: AuthState | null = null;
+
+function getAdminAuth(): AuthState {
+  if (_authCache) return _authCache;
   if (typeof window === 'undefined') return { isAdmin: false, loaded: false };
   try {
     const raw = localStorage.getItem('soundflow-auth');
@@ -14,21 +20,20 @@ function checkAdminAuth(): { isAdmin: boolean; loaded: boolean } {
       const parsed = JSON.parse(raw);
       const state = parsed?.state;
       if (state?.isAuthenticated && state?.user?.role === 'admin') {
-        return { isAdmin: true, loaded: true };
+        _authCache = { isAdmin: true, loaded: true };
+        return _authCache;
       }
     }
   } catch {
     // ignore parse errors
   }
-  return { isAdmin: false, loaded: true };
+  _authCache = { isAdmin: false, loaded: true };
+  return _authCache;
 }
 
 export default function AdminPage() {
-  const authState = useSyncExternalStore(
-    emptySubscribe,
-    () => checkAdminAuth(),
-    () => ({ isAdmin: false, loaded: false })
-  );
+  // Compute once on first client render; cached at module level so it's stable
+  const authState = typeof window !== 'undefined' ? getAdminAuth() : { isAdmin: false, loaded: false };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
