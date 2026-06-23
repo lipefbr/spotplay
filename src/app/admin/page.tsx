@@ -1,39 +1,47 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { Music2, Shield, ArrowLeft } from 'lucide-react';
 import AdminPanel from '@/components/admin/AdminPanel';
 
-interface AuthState {
-  isAdmin: boolean;
-  loaded: boolean;
+// Subscribe to storage events (no-op since we only read once)
+const emptySubscribe = () => () => {};
+
+// Cached snapshots to avoid infinite loop with useSyncExternalStore
+const _serverSnapshot: { isAdmin: boolean; loaded: boolean } = { isAdmin: false, loaded: false };
+let _clientSnapshot: { isAdmin: boolean; loaded: boolean } | null = null;
+
+/** Reset the cached auth snapshot (call on logout before redirect) */
+export function resetAdminAuthCache() {
+  _clientSnapshot = null;
 }
 
-// Module-level cache so the result is stable across renders
-let _authCache: AuthState | null = null;
-
-function getAdminAuth(): AuthState {
-  if (_authCache) return _authCache;
-  if (typeof window === 'undefined') return { isAdmin: false, loaded: false };
+function getAdminAuthSnapshot(): { isAdmin: boolean; loaded: boolean } {
+  if (_clientSnapshot) return _clientSnapshot;
   try {
     const raw = localStorage.getItem('soundflow-auth');
     if (raw) {
       const parsed = JSON.parse(raw);
       const state = parsed?.state;
-      if (state?.isAuthenticated && state?.user?.role === 'admin') {
-        _authCache = { isAdmin: true, loaded: true };
-        return _authCache;
+      if (state?.isAuthenticated && (state?.user?.role === 'admin' || state?.user?.role === 'moderator')) {
+        _clientSnapshot = { isAdmin: true, loaded: true };
+        return _clientSnapshot;
       }
     }
   } catch {
     // ignore parse errors
   }
-  _authCache = { isAdmin: false, loaded: true };
-  return _authCache;
+  _clientSnapshot = { isAdmin: false, loaded: true };
+  return _clientSnapshot;
 }
 
 export default function AdminPage() {
-  // Compute once on first client render; cached at module level so it's stable
-  const authState = typeof window !== 'undefined' ? getAdminAuth() : { isAdmin: false, loaded: false };
+  // useSyncExternalStore: server returns { loaded: false }, client reads localStorage (cached)
+  const authState = useSyncExternalStore(
+    emptySubscribe,
+    getAdminAuthSnapshot,
+    () => _serverSnapshot
+  );
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">

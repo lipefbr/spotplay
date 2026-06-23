@@ -61,6 +61,7 @@ import {
   Monitor,
   Smartphone,
   Tablet,
+  LogOut,
 } from 'lucide-react';
 import {
   LineChart,
@@ -123,6 +124,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { adminAnalytics, mockSongs, mockArtists, mockPodcasts, mockLiveStreams, subscriptionPlans } from '@/lib/mock-data';
 import { formatCurrency, formatPlayCount } from '@/lib/asaas';
+import { resetAdminAuthCache } from '@/app/admin/page';
 
 // ===== TYPES =====
 
@@ -330,11 +332,13 @@ function AdminSidebar({
   onViewChange,
   collapsed,
   onToggleCollapse,
+  onLogout,
 }: {
   currentView: AdminView;
   onViewChange: (view: AdminView) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  onLogout: () => void;
 }) {
   return (
     <aside
@@ -380,8 +384,16 @@ function AdminSidebar({
         </nav>
       </ScrollArea>
 
-      {/* Collapse Button - Always visible at bottom */}
-      <div className="shrink-0 border-t border-white/5 p-3">
+      {/* Bottom Buttons - Always visible */}
+      <div className="shrink-0 border-t border-white/5 p-3 space-y-1">
+        <button
+          onClick={onLogout}
+          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors w-full ${collapsed ? 'justify-center px-2' : ''}`}
+          title={collapsed ? 'Sair' : undefined}
+        >
+          <LogOut className="h-[18px] w-[18px] shrink-0" />
+          {!collapsed && <span>Sair</span>}
+        </button>
         <button
           onClick={onToggleCollapse}
           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-colors w-full ${collapsed ? 'justify-center px-2' : ''}`}
@@ -1260,7 +1272,7 @@ function SongsView() {
 // ===== PODCASTS VIEW =====
 
 function PodcastsView() {
-  const [podcasts, setPodcasts] = useState(mockPodcasts.map(p => ({ ...p, status: 'approved' as const, episodeCount: Math.floor(Math.random() * 50) + 5 })));
+  const [podcasts, setPodcasts] = useState(mockPodcasts.map((p, i) => ({ ...p, status: 'approved' as const, episodeCount: [25, 42, 18, 37, 31, 12][i % 6] })));
 
   return (
     <div className="space-y-6">
@@ -1459,7 +1471,7 @@ function AdsView() {
     } else {
       // Create new campaign
       const campaign: MockAdCampaign = {
-        id: `ad${Date.now()}`,
+        id: `ad${_adIdCounter++}`,
         name: newCampaign.name,
         type: newCampaign.type,
         status: 'active',
@@ -2299,9 +2311,21 @@ function SettingsView() {
 
 // ===== MAIN ADMIN PANEL =====
 
+// Stable ID counter for new ads (avoids Date.now() hydration mismatch)
+let _adIdCounter = 100;
+
 export default function AdminPanel() {
   const [currentView, setCurrentView] = useState<AdminView>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  const handleLogout = () => {
+    // Clear auth state from localStorage, reset cache, and redirect to home
+    try {
+      localStorage.removeItem('soundflow-auth');
+    } catch {}
+    resetAdminAuthCache();
+    window.location.href = '/';
+  };
 
   const renderView = () => {
     switch (currentView) {
@@ -2328,6 +2352,7 @@ export default function AdminPanel() {
         onViewChange={setCurrentView}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onLogout={handleLogout}
       />
 
       {/* Main Content - scrollable independently */}

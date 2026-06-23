@@ -1,0 +1,2002 @@
+     1→'use client';
+     2→
+     3→import { useState } from 'react';
+     4→import {
+     5→  LayoutDashboard,
+     6→  Users,
+     7→  CreditCard,
+     8→  DollarSign,
+     9→  Music,
+    10→  Mic2,
+    11→  Radio,
+    12→  Megaphone,
+    13→  FileBarChart,
+    14→  Settings,
+    15→  TrendingUp,
+    16→  TrendingDown,
+    17→  Activity,
+    18→  Play,
+    19→  Eye,
+    20→  Search,
+    21→  Bell,
+    22→  Shield,
+    23→  ArrowUpRight,
+    24→  ArrowDownRight,
+    25→  Calendar,
+    26→  RefreshCw,
+    27→  ChevronLeft,
+    28→  ChevronRight,
+    29→  CheckCircle2,
+    30→  XCircle,
+    31→  Ban,
+    32→  Edit3,
+    33→  Plus,
+    34→  Download,
+    35→  Upload,
+    36→  Volume2,
+    37→  Image,
+    38→  Video,
+    39→  Key,
+    40→  Globe,
+    41→  Mail,
+    42→  ToggleLeft,
+    43→  ToggleRight,
+    44→  AlertTriangle,
+    45→  BarChart3,
+    46→  FileText,
+    47→  Trash2,
+    48→  Check,
+    49→  X,
+    50→  MoreVertical,
+    51→  ExternalLink,
+    52→  Clock,
+    53→  Zap,
+    54→  UserPlus,
+    55→  Filter,
+    56→  EyeOff,
+    57→  Wifi,
+    58→  WifiOff,
+    59→  Save,
+    60→  Loader2,
+    61→  Monitor,
+    62→  Smartphone,
+    63→  Tablet,
+    64→} from 'lucide-react';
+    65→import {
+    66→  LineChart,
+    67→  Line,
+    68→  BarChart,
+    69→  Bar,
+    70→  XAxis,
+    71→  YAxis,
+    72→  CartesianGrid,
+    73→  Tooltip,
+    74→  ResponsiveContainer,
+    75→  PieChart,
+    76→  Pie,
+    77→  Cell,
+    78→} from 'recharts';
+    79→
+    80→import { Button } from '@/components/ui/button';
+    81→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+    82→import { Input } from '@/components/ui/input';
+    83→import { Label } from '@/components/ui/label';
+    84→import { Badge } from '@/components/ui/badge';
+    85→import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+    86→import { Switch } from '@/components/ui/switch';
+    87→import { Separator } from '@/components/ui/separator';
+    88→import { ScrollArea } from '@/components/ui/scroll-area';
+    89→import { Textarea } from '@/components/ui/textarea';
+    90→import {
+    91→  Table,
+    92→  TableBody,
+    93→  TableCell,
+    94→  TableHead,
+    95→  TableHeader,
+    96→  TableRow,
+    97→} from '@/components/ui/table';
+    98→import {
+    99→  Select,
+   100→  SelectContent,
+   101→  SelectItem,
+   102→  SelectTrigger,
+   103→  SelectValue,
+   104→} from '@/components/ui/select';
+   105→import {
+   106→  Dialog,
+   107→  DialogContent,
+   108→  DialogDescription,
+   109→  DialogFooter,
+   110→  DialogHeader,
+   111→  DialogTitle,
+   112→} from '@/components/ui/dialog';
+   113→import {
+   114→  AlertDialog,
+   115→  AlertDialogAction,
+   116→  AlertDialogCancel,
+   117→  AlertDialogContent,
+   118→  AlertDialogDescription,
+   119→  AlertDialogFooter,
+   120→  AlertDialogHeader,
+   121→  AlertDialogTitle,
+   122→} from '@/components/ui/alert-dialog';
+   123→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+   124→import { adminAnalytics, mockSongs, mockArtists, mockPodcasts, mockLiveStreams, subscriptionPlans } from '@/lib/mock-data';
+   125→import { formatCurrency, formatPlayCount } from '@/lib/asaas';
+   126→
+   127→// ===== TYPES =====
+   128→
+   129→type AdminView =
+   130→  | 'dashboard'
+   131→  | 'users'
+   132→  | 'subscriptions'
+   133→  | 'payments'
+   134→  | 'creators'
+   135→  | 'songs'
+   136→  | 'podcasts'
+   137→  | 'lives'
+   138→  | 'ads'
+   139→  | 'reports'
+   140→  | 'settings';
+   141→
+   142→interface MockUser {
+   143→  id: string;
+   144→  name: string;
+   145→  email: string;
+   146→  avatar: string;
+   147→  role: 'free' | 'premium' | 'creator' | 'moderator' | 'admin';
+   148→  plan: 'free' | 'premium_individual' | 'premium_duo' | 'premium_familia' | 'premium_estudante';
+   149→  status: 'active' | 'suspended' | 'banned';
+   150→  joinedDate: string;
+   151→}
+   152→
+   153→interface MockSubscription {
+   154→  id: string;
+   155→  userId: string;
+   156→  userName: string;
+   157→  plan: string;
+   158→  price: number;
+   159→  status: 'active' | 'canceled' | 'expired' | 'past_due';
+   160→  billingMethod: 'PIX' | 'Cartão' | 'Boleto';
+   161→  nextBilling: string;
+   162→}
+   163→
+   164→interface MockPayment {
+   165→  id: string;
+   166→  userId: string;
+   167→  userName: string;
+   168→  amount: number;
+   169→  method: 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito';
+   170→  status: 'confirmed' | 'pending' | 'failed' | 'refunded';
+   171→  date: string;
+   172→}
+   173→
+   174→interface MockAdCampaign {
+   175→  id: string;
+   176→  name: string;
+   177→  type: 'audio' | 'video' | 'banner';
+   178→  status: 'active' | 'inactive';
+   179→  impressions: number;
+   180→  clicks: number;
+   181→  budget: number;
+   182→  spent: number;
+   183→  targetUrl: string;
+   184→  duration: number;
+   185→  frequency: number;
+   186→  audioFileName?: string;
+   187→}
+   188→
+   189→// ===== SIDEBAR NAV ITEMS =====
+   190→
+   191→const NAV_ITEMS: { icon: React.ElementType; label: string; view: AdminView }[] = [
+   192→  { icon: LayoutDashboard, label: 'Dashboard', view: 'dashboard' },
+   193→  { icon: Users, label: 'Usuários', view: 'users' },
+   194→  { icon: CreditCard, label: 'Assinaturas', view: 'subscriptions' },
+   195→  { icon: DollarSign, label: 'Pagamentos', view: 'payments' },
+   196→  { icon: Mic2, label: 'Criadores', view: 'creators' },
+   197→  { icon: Music, label: 'Músicas', view: 'songs' },
+   198→  { icon: Radio, label: 'Podcasts', view: 'podcasts' },
+   199→  { icon: Activity, label: 'Lives', view: 'lives' },
+   200→  { icon: Megaphone, label: 'Anúncios', view: 'ads' },
+   201→  { icon: FileBarChart, label: 'Relatórios', view: 'reports' },
+   202→  { icon: Settings, label: 'Configurações', view: 'settings' },
+   203→];
+   204→
+   205→// ===== MOCK DATA =====
+   206→
+   207→const mockUsers: MockUser[] = [
+   208→  { id: 'u1', name: 'Lucas Mendes', email: 'lucas@email.com', avatar: 'https://images.unsplash.com/photo-1548247416-ec66f4900b2e?w=100&h=100&fit=crop', role: 'creator', plan: 'premium_individual', status: 'active', joinedDate: '2024-03-15' },
+   209→  { id: 'u2', name: 'Marina Silva', email: 'marina@email.com', avatar: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=100&h=100&fit=crop', role: 'creator', plan: 'premium_familia', status: 'active', joinedDate: '2024-01-20' },
+   210→  { id: 'u3', name: 'DJ Thunder', email: 'dj@email.com', avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&h=100&fit=crop', role: 'creator', plan: 'premium_individual', status: 'active', joinedDate: '2024-02-10' },
+   211→  { id: 'u4', name: 'Ana Costa', email: 'ana@email.com', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop', role: 'free', plan: 'free', status: 'active', joinedDate: '2024-06-01' },
+   212→  { id: 'u5', name: 'Pedro Almeida', email: 'pedro@email.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop', role: 'premium', plan: 'premium_duo', status: 'active', joinedDate: '2024-04-15' },
+   213→  { id: 'u6', name: 'Capoeira Soul', email: 'capoeira@email.com', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop', role: 'creator', plan: 'premium_individual', status: 'suspended', joinedDate: '2024-05-01' },
+   214→  { id: 'u7', name: 'Rafael Torres', email: 'rafael@email.com', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop', role: 'premium', plan: 'premium_estudante', status: 'active', joinedDate: '2024-07-10' },
+   215→  { id: 'u8', name: 'Isabela Ferreira', email: 'isabela@email.com', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop', role: 'creator', plan: 'premium_individual', status: 'active', joinedDate: '2024-03-20' },
+   216→  { id: 'u9', name: 'João Santos', email: 'joao@email.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', role: 'free', plan: 'free', status: 'banned', joinedDate: '2024-08-05' },
+   217→  { id: 'u10', name: 'Camila Rocha', email: 'camila@email.com', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop', role: 'moderator', plan: 'premium_individual', status: 'active', joinedDate: '2024-01-10' },
+   218→  { id: 'u11', name: 'Admin SoundFlow', email: 'admin@soundflow.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', role: 'admin', plan: 'premium_individual', status: 'active', joinedDate: '2023-12-01' },
+   219→  { id: 'u12', name: 'Fernanda Lima', email: 'fernanda@email.com', avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop', role: 'free', plan: 'free', status: 'active', joinedDate: '2024-09-12' },
+   220→];
+   221→
+   222→const mockSubscriptions: MockSubscription[] = [
+   223→  { id: 'sub1', userId: 'u1', userName: 'Lucas Mendes', plan: 'Premium Individual', price: 21.90, status: 'active', billingMethod: 'PIX', nextBilling: '2025-07-15' },
+   224→  { id: 'sub2', userId: 'u2', userName: 'Marina Silva', plan: 'Premium Família', price: 39.90, status: 'active', billingMethod: 'Cartão', nextBilling: '2025-07-20' },
+   225→  { id: 'sub3', userId: 'u3', userName: 'DJ Thunder', plan: 'Premium Individual', price: 21.90, status: 'active', billingMethod: 'Cartão', nextBilling: '2025-07-10' },
+   226→  { id: 'sub4', userId: 'u5', userName: 'Pedro Almeida', plan: 'Premium Duo', price: 29.90, status: 'active', billingMethod: 'PIX', nextBilling: '2025-07-15' },
+   227→  { id: 'sub5', userId: 'u6', userName: 'Capoeira Soul', plan: 'Premium Individual', price: 21.90, status: 'canceled', billingMethod: 'Cartão', nextBilling: '2025-06-01' },
+   228→  { id: 'sub6', userId: 'u7', userName: 'Rafael Torres', plan: 'Premium Estudante', price: 11.95, status: 'active', billingMethod: 'PIX', nextBilling: '2025-07-10' },
+   229→  { id: 'sub7', userId: 'u8', userName: 'Isabela Ferreira', plan: 'Premium Individual', price: 21.90, status: 'past_due', billingMethod: 'Cartão', nextBilling: '2025-06-20' },
+   230→  { id: 'sub8', userId: 'u10', userName: 'Camila Rocha', plan: 'Premium Individual', price: 21.90, status: 'active', billingMethod: 'PIX', nextBilling: '2025-07-10' },
+   231→  { id: 'sub9', userId: 'u11', userName: 'Admin SoundFlow', plan: 'Premium Individual', price: 21.90, status: 'active', billingMethod: 'Cartão', nextBilling: '2025-07-01' },
+   232→  { id: 'sub10', userId: 'u12', userName: 'Fernanda Lima', plan: 'Premium Individual', price: 21.90, status: 'expired', billingMethod: 'PIX', nextBilling: '2025-05-01' },
+   233→];
+   234→
+   235→const mockPayments: MockPayment[] = [
+   236→  { id: 'PAY001', userId: 'u1', userName: 'Lucas Mendes', amount: 21.90, method: 'PIX', status: 'confirmed', date: '2025-06-15' },
+   237→  { id: 'PAY002', userId: 'u2', userName: 'Marina Silva', amount: 39.90, method: 'Cartão de Crédito', status: 'confirmed', date: '2025-06-20' },
+   238→  { id: 'PAY003', userId: 'u3', userName: 'DJ Thunder', amount: 21.90, method: 'Cartão de Crédito', status: 'confirmed', date: '2025-06-10' },
+   239→  { id: 'PAY004', userId: 'u5', userName: 'Pedro Almeida', amount: 29.90, method: 'PIX', status: 'confirmed', date: '2025-06-15' },
+   240→  { id: 'PAY005', userId: 'u7', userName: 'Rafael Torres', amount: 11.95, method: 'PIX', status: 'pending', date: '2025-06-10' },
+   241→  { id: 'PAY006', userId: 'u8', userName: 'Isabela Ferreira', amount: 21.90, method: 'Cartão de Crédito', status: 'failed', date: '2025-06-20' },
+   242→  { id: 'PAY007', userId: 'u10', userName: 'Camila Rocha', amount: 21.90, method: 'PIX', status: 'confirmed', date: '2025-06-10' },
+   243→  { id: 'PAY008', userId: 'u1', userName: 'Lucas Mendes', amount: 21.90, method: 'PIX', status: 'confirmed', date: '2025-05-15' },
+   244→  { id: 'PAY009', userId: 'u2', userName: 'Marina Silva', amount: 39.90, method: 'Cartão de Crédito', status: 'confirmed', date: '2025-05-20' },
+   245→  { id: 'PAY010', userId: 'u6', userName: 'Capoeira Soul', amount: 21.90, method: 'Cartão de Crédito', status: 'refunded', date: '2025-05-01' },
+   246→  { id: 'PAY011', userId: 'u11', userName: 'Admin SoundFlow', amount: 21.90, method: 'Cartão de Crédito', status: 'confirmed', date: '2025-06-01' },
+   247→  { id: 'PAY012', userId: 'u12', userName: 'Fernanda Lima', amount: 21.90, method: 'PIX', status: 'pending', date: '2025-06-25' },
+   248→];
+   249→
+   250→const mockAdCampaigns: MockAdCampaign[] = [
+   251→  { id: 'ad1', name: 'Promo Verão 2025', type: 'audio', status: 'active', impressions: 125000, clicks: 3200, budget: 5000, spent: 3750, targetUrl: 'https://example.com/promo', duration: 30, frequency: 3 },
+   252→  { id: 'ad2', name: 'Novo App SoundFlow', type: 'video', status: 'active', impressions: 89000, clicks: 2100, budget: 8000, spent: 4500, targetUrl: 'https://example.com/app', duration: 15, frequency: 5 },
+   253→  { id: 'ad3', name: 'Premium Duo Lançamento', type: 'banner', status: 'active', impressions: 230000, clicks: 5600, budget: 3000, spent: 2800, targetUrl: 'https://example.com/duo', duration: 0, frequency: 4 },
+   254→  { id: 'ad4', name: 'Black Friday 2024', type: 'audio', status: 'inactive', impressions: 450000, clicks: 12000, budget: 10000, spent: 10000, targetUrl: 'https://example.com/bf', duration: 30, frequency: 3 },
+   255→  { id: 'ad5', name: 'Podcast Original SF', type: 'video', status: 'inactive', impressions: 56000, clicks: 890, budget: 2000, spent: 1200, targetUrl: 'https://example.com/podcast', duration: 20, frequency: 6 },
+   256→];
+   257→
+   258→const planDistribution = [
+   259→  { name: 'Free', value: 89000, color: '#6b7280' },
+   260→  { name: 'Individual', value: 22000, color: '#10b981' },
+   261→  { name: 'Duo', value: 6500, color: '#f59e0b' },
+   262→  { name: 'Família', value: 4500, color: '#8b5cf6' },
+   263→  { name: 'Estudante', value: 1567, color: '#06b6d4' },
+   264→];
+   265→
+   266→const recentActivity = [
+   267→  { id: '1', user: 'Marina Silva', action: 'assinou Premium Família', time: '2 min atrás', icon: CreditCard },
+   268→  { id: '2', user: 'DJ Thunder', action: 'enviou nova música "Neon Lights"', time: '15 min atrás', icon: Music },
+   269→  { id: '3', user: 'Ana Costa', action: 'iniciou live "Brisa Tropical"', time: '30 min atrás', icon: Radio },
+   270→  { id: '4', user: 'Pedro Almeida', action: 'cancelou assinatura', time: '1h atrás', icon: XCircle },
+   271→  { id: '5', user: 'Capoeira Soul', action: 'foi suspenso por violação', time: '2h atrás', icon: Shield },
+   272→  { id: '6', user: 'Isabela Ferreira', action: 'pagamento falhou', time: '3h atrás', icon: AlertTriangle },
+   273→  { id: '7', user: 'Rafael Torres', action: 'verificação de estudante aprovada', time: '4h atrás', icon: CheckCircle2 },
+   274→  { id: '8', user: 'Camila Rocha', action: 'foi promovida a moderadora', time: '5h atrás', icon: Users },
+   275→];
+   276→
+   277→// ===== HELPER COMPONENTS =====
+   278→
+   279→function StatusBadge({ status }: { status: string }) {
+   280→  const variants: Record<string, { className: string; label: string }> = {
+   281→    active: { className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', label: 'Ativo' },
+   282→    inactive: { className: 'bg-gray-500/20 text-gray-400 border-gray-500/30', label: 'Inativo' },
+   283→    pending: { className: 'bg-amber-500/20 text-amber-400 border-amber-500/30', label: 'Pendente' },
+   284→    approved: { className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', label: 'Aprovado' },
+   285→    rejected: { className: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Rejeitado' },
+   286→    removed: { className: 'bg-gray-500/20 text-gray-400 border-gray-500/30', label: 'Removido' },
+   287→    suspended: { className: 'bg-amber-500/20 text-amber-400 border-amber-500/30', label: 'Suspenso' },
+   288→    banned: { className: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Banido' },
+   289→    canceled: { className: 'bg-gray-500/20 text-gray-400 border-gray-500/30', label: 'Cancelado' },
+   290→    expired: { className: 'bg-orange-500/20 text-orange-400 border-orange-500/30', label: 'Expirado' },
+   291→    past_due: { className: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Em Atraso' },
+   292→    confirmed: { className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', label: 'Confirmado' },
+   293→    failed: { className: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Falhou' },
+   294→    refunded: { className: 'bg-purple-500/20 text-purple-400 border-purple-500/30', label: 'Reembolsado' },
+   295→    live: { className: 'bg-red-500/20 text-red-400 border-red-500/30', label: 'Ao Vivo' },
+   296→    scheduled: { className: 'bg-blue-500/20 text-blue-400 border-blue-500/30', label: 'Agendado' },
+   297→    ended: { className: 'bg-gray-500/20 text-gray-400 border-gray-500/30', label: 'Encerrado' },
+   298→  };
+   299→  const v = variants[status] || { className: 'bg-gray-500/20 text-gray-400 border-gray-500/30', label: status };
+   300→  return <Badge className={`${v.className} border text-xs font-medium`}>{v.label}</Badge>;
+   301→}
+   302→
+   303→function RoleBadge({ role }: { role: string }) {
+   304→  const variants: Record<string, { className: string; label: string }> = {
+   305→    admin: { className: 'bg-amber-500/20 text-amber-400 border-amber-500/30', label: 'Admin' },
+   306→    moderator: { className: 'bg-blue-500/20 text-blue-400 border-blue-500/30', label: 'Moderador' },
+   307→    creator: { className: 'bg-purple-500/20 text-purple-400 border-purple-500/30', label: 'Criador' },
+   308→    premium: { className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', label: 'Premium' },
+   309→    free: { className: 'bg-gray-500/20 text-gray-400 border-gray-500/30', label: 'Free' },
+   310→  };
+   311→  const v = variants[role] || variants.free;
+   312→  return <Badge className={`${v.className} border text-xs font-medium`}>{v.label}</Badge>;
+   313→}
+   314→
+   315→function PlanBadge({ plan }: { plan: string }) {
+   316→  const map: Record<string, string> = {
+   317→    free: 'Free',
+   318→    premium_individual: 'Individual',
+   319→    premium_duo: 'Duo',
+   320→    premium_familia: 'Família',
+   321→    premium_estudante: 'Estudante',
+   322→  };
+   323→  return <span className="text-xs text-gray-300">{map[plan] || plan}</span>;
+   324→}
+   325→
+   326→// ===== SIDEBAR COMPONENT =====
+   327→
+   328→function AdminSidebar({
+   329→  currentView,
+   330→  onViewChange,
+   331→  collapsed,
+   332→  onToggleCollapse,
+   333→}: {
+   334→  currentView: AdminView;
+   335→  onViewChange: (view: AdminView) => void;
+   336→  collapsed: boolean;
+   337→  onToggleCollapse: () => void;
+   338→}) {
+   339→  return (
+   340→    <aside
+   341→      className={`fixed left-0 top-14 bottom-0 z-40 flex flex-col bg-gray-900 border-r border-white/5 transition-all duration-300 ${
+   342→        collapsed ? 'w-[68px]' : 'w-[240px]'
+   343→      }`}
+   344→    >
+   345→      {/* Logo Header - Always visible */}
+   346→      <div className={`flex items-center h-16 px-4 border-b border-white/5 shrink-0 ${collapsed ? 'justify-center' : 'gap-3'}`}>
+   347→        <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center shrink-0">
+   348→          <Music className="h-5 w-5 text-white" />
+   349→        </div>
+   350→        {!collapsed && (
+   351→          <div className="min-w-0">
+   352→            <h1 className="text-base font-bold text-white tracking-tight">SoundFlow</h1>
+   353→            <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Admin Panel</p>
+   354→          </div>
+   355→        )}
+   356→      </div>
+   357→
+   358→      {/* Scrollable Nav Items */}
+   359→      <ScrollArea className="flex-1 py-3">
+   360→        <nav className="flex flex-col gap-1 px-2">
+   361→          {NAV_ITEMS.map((item) => {
+   362→            const Icon = item.icon;
+   363→            const isActive = currentView === item.view;
+   364→            return (
+   365→              <button
+   366→                key={item.view}
+   367→                onClick={() => onViewChange(item.view)}
+   368→                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+   369→                  isActive
+   370→                    ? 'bg-emerald-500/15 text-emerald-400'
+   371→                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+   372→                } ${collapsed ? 'justify-center px-2' : ''}`}
+   373→                title={collapsed ? item.label : undefined}
+   374→              >
+   375→                <Icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-emerald-400' : ''}`} />
+   376→                {!collapsed && <span className="truncate">{item.label}</span>}
+   377→              </button>
+   378→            );
+   379→          })}
+   380→        </nav>
+   381→      </ScrollArea>
+   382→
+   383→      {/* Collapse Button - Always visible at bottom */}
+   384→      <div className="shrink-0 border-t border-white/5 p-3">
+   385→        <button
+   386→          onClick={onToggleCollapse}
+   387→          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400 hover:bg-white/5 hover:text-white transition-colors w-full ${collapsed ? 'justify-center px-2' : ''}`}
+   388→        >
+   389→          {collapsed ? <ChevronRight className="h-[18px] w-[18px] shrink-0" /> : <ChevronLeft className="h-[18px] w-[18px] shrink-0" />}
+   390→          {!collapsed && <span>Recolher</span>}
+   391→        </button>
+   392→      </div>
+   393→    </aside>
+   394→  );
+   395→}
+   396→
+   397→// ===== DASHBOARD VIEW =====
+   398→
+   399→function DashboardView() {
+   400→  return (
+   401→    <div className="space-y-6">
+   402→      <div className="flex items-center justify-between">
+   403→        <div>
+   404→          <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+   405→          <p className="text-sm text-gray-400 mt-1">Visão geral da plataforma SoundFlow</p>
+   406→        </div>
+   407→        <div className="flex items-center gap-2">
+   408→          <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+   409→            <Activity className="h-3 w-3 mr-1" /> Tempo real
+   410→          </Badge>
+   411→        </div>
+   412→      </div>
+   413→
+   414→      {/* Stat Cards */}
+   415→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   416→        {[
+   417→          { title: 'Total de Usuários', value: adminAnalytics.totalUsers.toLocaleString('pt-BR'), trend: '+12.5%', up: true, icon: Users, color: 'emerald' },
+   418→          { title: 'Premium', value: adminAnalytics.premiumUsers.toLocaleString('pt-BR'), trend: '+8.3%', up: true, icon: CreditCard, color: 'amber' },
+   419→          { title: 'Receita Mensal', value: formatCurrency(adminAnalytics.totalRevenue), trend: '+15.2%', up: true, icon: DollarSign, color: 'emerald' },
+   420→          { title: 'Usuários Ativos', value: adminAnalytics.activeUsers.toLocaleString('pt-BR'), trend: '+5.7%', up: true, icon: Activity, color: 'emerald' },
+   421→        ].map((stat) => (
+   422→          <Card key={stat.title} className="bg-gray-900 border-white/5">
+   423→            <CardContent className="p-5">
+   424→              <div className="flex items-center justify-between">
+   425→                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${stat.color === 'amber' ? 'bg-amber-500/15' : 'bg-emerald-500/15'}`}>
+   426→                  <stat.icon className={`h-5 w-5 ${stat.color === 'amber' ? 'text-amber-400' : 'text-emerald-400'}`} />
+   427→                </div>
+   428→                <div className="flex items-center gap-1 text-xs">
+   429→                  {stat.up ? <ArrowUpRight className="h-3 w-3 text-emerald-400" /> : <ArrowDownRight className="h-3 w-3 text-red-400" />}
+   430→                  <span className={stat.up ? 'text-emerald-400' : 'text-red-400'}>{stat.trend}</span>
+   431→                </div>
+   432→              </div>
+   433→              <div className="mt-3">
+   434→                <p className="text-2xl font-bold text-white">{stat.value}</p>
+   435→                <p className="text-xs text-gray-400 mt-1">{stat.title}</p>
+   436→              </div>
+   437→            </CardContent>
+   438→          </Card>
+   439→        ))}
+   440→      </div>
+   441→
+   442→      {/* Charts */}
+   443→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   444→        {/* Revenue Chart */}
+   445→        <Card className="bg-gray-900 border-white/5">
+   446→          <CardHeader className="pb-2">
+   447→            <CardTitle className="text-base text-white">Receita Mensal</CardTitle>
+   448→            <CardDescription className="text-xs text-gray-400">Receita dos últimos 6 meses</CardDescription>
+   449→          </CardHeader>
+   450→          <CardContent className="pt-0">
+   451→            <ResponsiveContainer width="100%" height={280}>
+   452→              <BarChart data={adminAnalytics.revenueByMonth}>
+   453→                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+   454→                <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+   455→                <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}K`} />
+   456→                <Tooltip
+   457→                  contentStyle={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '8px' }}
+   458→                  labelStyle={{ color: '#9ca3af' }}
+   459→                  formatter={(value: number) => [formatCurrency(value), 'Receita']}
+   460→                />
+   461→                <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+   462→              </BarChart>
+   463→            </ResponsiveContainer>
+   464→          </CardContent>
+   465→        </Card>
+   466→
+   467→        {/* User Growth Chart */}
+   468→        <Card className="bg-gray-900 border-white/5">
+   469→          <CardHeader className="pb-2">
+   470→            <CardTitle className="text-base text-white">Crescimento de Usuários</CardTitle>
+   471→            <CardDescription className="text-xs text-gray-400">Usuários totais por mês</CardDescription>
+   472→          </CardHeader>
+   473→          <CardContent className="pt-0">
+   474→            <ResponsiveContainer width="100%" height={280}>
+   475→              <LineChart data={adminAnalytics.usersByMonth}>
+   476→                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+   477→                <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
+   478→                <YAxis stroke="#6b7280" fontSize={12} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}K`} />
+   479→                <Tooltip
+   480→                  contentStyle={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '8px' }}
+   481→                  labelStyle={{ color: '#9ca3af' }}
+   482→                  formatter={(value: number) => [value.toLocaleString('pt-BR'), 'Usuários']}
+   483→                />
+   484→                <Line type="monotone" dataKey="users" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 4 }} />
+   485→              </LineChart>
+   486→            </ResponsiveContainer>
+   487→          </CardContent>
+   488→        </Card>
+   489→      </div>
+   490→
+   491→      {/* Bottom Section: Top Songs + Activity + Plan Distribution */}
+   492→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   493→        {/* Top Songs */}
+   494→        <Card className="bg-gray-900 border-white/5 lg:col-span-1">
+   495→          <CardHeader className="pb-2">
+   496→            <CardTitle className="text-base text-white">Top Músicas</CardTitle>
+   497→          </CardHeader>
+   498→          <CardContent className="pt-0">
+   499→            <div className="space-y-3">
+   500→              {adminAnalytics.topSongs.map((song, i) => (
+   501→                <div key={song.id} className="flex items-center gap-3">
+   502→                  <span className="text-xs font-bold text-gray-500 w-4 text-center">{i + 1}</span>
+   503→                  <Avatar className="h-9 w-9 rounded">
+   504→                    <AvatarImage src={song.coverUrl} />
+   505→                    <AvatarFallback className="bg-gray-800 text-gray-400 text-xs"><Music className="h-4 w-4" /></AvatarFallback>
+   506→                  </Avatar>
+   507→                  <div className="min-w-0 flex-1">
+   508→                    <p className="text-sm font-medium text-white truncate">{song.title}</p>
+   509→                    <p className="text-xs text-gray-400 truncate">{song.artistName}</p>
+   510→                  </div>
+   511→                  <span className="text-xs text-gray-400 shrink-0">{formatPlayCount(song.playCount)}</span>
+   512→                </div>
+   513→              ))}
+   514→            </div>
+   515→          </CardContent>
+   516→        </Card>
+   517→
+   518→        {/* Recent Activity */}
+   519→        <Card className="bg-gray-900 border-white/5 lg:col-span-1">
+   520→          <CardHeader className="pb-2">
+   521→            <CardTitle className="text-base text-white">Atividade Recente</CardTitle>
+   522→          </CardHeader>
+   523→          <CardContent className="pt-0">
+   524→            <ScrollArea className="h-[300px]">
+   525→              <div className="space-y-3">
+   526→                {recentActivity.map((activity) => {
+   527→                  const Icon = activity.icon;
+   528→                  return (
+   529→                    <div key={activity.id} className="flex items-start gap-3">
+   530→                      <div className="h-7 w-7 rounded-full bg-gray-800 flex items-center justify-center shrink-0 mt-0.5">
+   531→                        <Icon className="h-3.5 w-3.5 text-gray-400" />
+   532→                      </div>
+   533→                      <div className="min-w-0">
+   534→                        <p className="text-sm text-white"><span className="font-medium">{activity.user}</span> {activity.action}</p>
+   535→                        <p className="text-xs text-gray-500">{activity.time}</p>
+   536→                      </div>
+   537→                    </div>
+   538→                  );
+   539→                })}
+   540→              </div>
+   541→            </ScrollArea>
+   542→          </CardContent>
+   543→        </Card>
+   544→
+   545→        {/* Plan Distribution */}
+   546→        <Card className="bg-gray-900 border-white/5 lg:col-span-1">
+   547→          <CardHeader className="pb-2">
+   548→            <CardTitle className="text-base text-white">Distribuição de Planos</CardTitle>
+   549→          </CardHeader>
+   550→          <CardContent className="pt-0">
+   551→            <ResponsiveContainer width="100%" height={200}>
+   552→              <PieChart>
+   553→                <Pie data={planDistribution} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
+   554→                  {planDistribution.map((entry, index) => (
+   555→                    <Cell key={`cell-${index}`} fill={entry.color} />
+   556→                  ))}
+   557→                </Pie>
+   558→                <Tooltip
+   559→                  contentStyle={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '8px' }}
+   560→                  formatter={(value: number) => [value.toLocaleString('pt-BR'), 'Usuários']}
+   561→                />
+   562→              </PieChart>
+   563→            </ResponsiveContainer>
+   564→            <div className="space-y-1.5 mt-2">
+   565→              {planDistribution.map((plan) => (
+   566→                <div key={plan.name} className="flex items-center justify-between text-xs">
+   567→                  <div className="flex items-center gap-2">
+   568→                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: plan.color }} />
+   569→                    <span className="text-gray-300">{plan.name}</span>
+   570→                  </div>
+   571→                  <span className="text-gray-400">{plan.value.toLocaleString('pt-BR')}</span>
+   572→                </div>
+   573→              ))}
+   574→            </div>
+   575→          </CardContent>
+   576→        </Card>
+   577→      </div>
+   578→    </div>
+   579→  );
+   580→}
+   581→
+   582→// ===== USUÁRIOS VIEW =====
+   583→
+   584→function UsersView() {
+   585→  const [search, setSearch] = useState('');
+   586→  const [roleFilter, setRoleFilter] = useState('all');
+   587→  const [users, setUsers] = useState(mockUsers);
+   588→  const [editDialog, setEditDialog] = useState<MockUser | null>(null);
+   589→  const [editRole, setEditRole] = useState('');
+   590→  const [editPlan, setEditPlan] = useState('');
+   591→  const [editStatus, setEditStatus] = useState('');
+   592→
+   593→  const filtered = users.filter((u) => {
+   594→    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
+   595→    const matchRole = roleFilter === 'all' || u.role === roleFilter;
+   596→    return matchSearch && matchRole;
+   597→  });
+   598→
+   599→  const handleSaveUser = () => {
+   600→    if (!editDialog) return;
+   601→    setUsers(prev => prev.map(u => u.id === editDialog.id ? { ...u, role: editRole as MockUser['role'], plan: editPlan as MockUser['plan'], status: editStatus as MockUser['status'] } : u));
+   602→    setEditDialog(null);
+   603→  };
+   604→
+   605→  const handleSuspend = (id: string) => {
+   606→    setUsers(prev => prev.map(u => u.id === id ? { ...u, status: u.status === 'suspended' ? 'active' as const : 'suspended' as const } : u));
+   607→  };
+   608→
+   609→  const handleBan = (id: string) => {
+   610→    setUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'banned' as const } : u));
+   611→  };
+   612→
+   613→  return (
+   614→    <div className="space-y-6">
+   615→      <div className="flex items-center justify-between flex-wrap gap-3">
+   616→        <div>
+   617→          <h2 className="text-2xl font-bold text-white">Usuários</h2>
+   618→          <p className="text-sm text-gray-400 mt-1">Gerenciar usuários da plataforma</p>
+   619→        </div>
+   620→        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+   621→          <UserPlus className="h-4 w-4 mr-2" /> Novo Usuário
+   622→        </Button>
+   623→      </div>
+   624→
+   625→      {/* Filters */}
+   626→      <div className="flex items-center gap-3 flex-wrap">
+   627→        <div className="relative flex-1 min-w-[200px] max-w-md">
+   628→          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+   629→          <Input
+   630→            placeholder="Buscar por nome ou email..."
+   631→            value={search}
+   632→            onChange={(e) => setSearch(e.target.value)}
+   633→            className="pl-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+   634→          />
+   635→        </div>
+   636→        <Select value={roleFilter} onValueChange={setRoleFilter}>
+   637→          <SelectTrigger className="w-[160px] bg-gray-800 border-gray-700 text-white">
+   638→            <SelectValue placeholder="Filtrar por cargo" />
+   639→          </SelectTrigger>
+   640→          <SelectContent>
+   641→            <SelectItem value="all">Todos os cargos</SelectItem>
+   642→            <SelectItem value="admin">Admin</SelectItem>
+   643→            <SelectItem value="moderator">Moderador</SelectItem>
+   644→            <SelectItem value="creator">Criador</SelectItem>
+   645→            <SelectItem value="premium">Premium</SelectItem>
+   646→            <SelectItem value="free">Free</SelectItem>
+   647→          </SelectContent>
+   648→        </Select>
+   649→      </div>
+   650→
+   651→      {/* Users Table */}
+   652→      <Card className="bg-gray-900 border-white/5">
+   653→        <CardContent className="p-0">
+   654→          <Table>
+   655→            <TableHeader>
+   656→              <TableRow className="border-white/5 hover:bg-transparent">
+   657→                <TableHead className="text-gray-400">Usuário</TableHead>
+   658→                <TableHead className="text-gray-400">Cargo</TableHead>
+   659→                <TableHead className="text-gray-400">Plano</TableHead>
+   660→                <TableHead className="text-gray-400">Status</TableHead>
+   661→                <TableHead className="text-gray-400">Data</TableHead>
+   662→                <TableHead className="text-gray-400 text-right">Ações</TableHead>
+   663→              </TableRow>
+   664→            </TableHeader>
+   665→            <TableBody>
+   666→              {filtered.map((user) => (
+   667→                <TableRow key={user.id} className="border-white/5 hover:bg-white/[0.02]">
+   668→                  <TableCell>
+   669→                    <div className="flex items-center gap-3">
+   670→                      <Avatar className="h-8 w-8">
+   671→                        <AvatarImage src={user.avatar} />
+   672→                        <AvatarFallback className="bg-gray-700 text-gray-300 text-xs">{user.name.charAt(0)}</AvatarFallback>
+   673→                      </Avatar>
+   674→                      <div className="min-w-0">
+   675→                        <p className="text-sm font-medium text-white truncate">{user.name}</p>
+   676→                        <p className="text-xs text-gray-400 truncate">{user.email}</p>
+   677→                      </div>
+   678→                    </div>
+   679→                  </TableCell>
+   680→                  <TableCell><RoleBadge role={user.role} /></TableCell>
+   681→                  <TableCell><PlanBadge plan={user.plan} /></TableCell>
+   682→                  <TableCell><StatusBadge status={user.status} /></TableCell>
+   683→                  <TableCell className="text-sm text-gray-400">{new Date(user.joinedDate).toLocaleDateString('pt-BR')}</TableCell>
+   684→                  <TableCell className="text-right">
+   685→                    <div className="flex items-center justify-end gap-1">
+   686→                      <Button
+   687→                        variant="ghost"
+   688→                        size="icon"
+   689→                        className="h-8 w-8 text-gray-400 hover:text-white"
+   690→                        onClick={() => { setEditDialog(user); setEditRole(user.role); setEditPlan(user.plan); setEditStatus(user.status); }}
+   691→                      >
+   692→                        <Edit3 className="h-4 w-4" />
+   693→                      </Button>
+   694→                      <Button
+   695→                        variant="ghost"
+   696→                        size="icon"
+   697→                        className={`h-8 w-8 ${user.status === 'suspended' ? 'text-emerald-400 hover:text-emerald-300' : 'text-amber-400 hover:text-amber-300'}`}
+   698→                        onClick={() => handleSuspend(user.id)}
+   699→                      >
+   700→                        <Ban className="h-4 w-4" />
+   701→                      </Button>
+   702→                      <Button
+   703→                        variant="ghost"
+   704→                        size="icon"
+   705→                        className="h-8 w-8 text-red-400 hover:text-red-300"
+   706→                        onClick={() => handleBan(user.id)}
+   707→                      >
+   708→                        <Shield className="h-4 w-4" />
+   709→                      </Button>
+   710→                    </div>
+   711→                  </TableCell>
+   712→                </TableRow>
+   713→              ))}
+   714→            </TableBody>
+   715→          </Table>
+   716→        </CardContent>
+   717→      </Card>
+   718→
+   719→      {/* Edit User Dialog */}
+   720→      <Dialog open={!!editDialog} onOpenChange={(open) => !open && setEditDialog(null)}>
+   721→        <DialogContent className="bg-gray-900 border-gray-700 text-white">
+   722→          <DialogHeader>
+   723→            <DialogTitle>Editar Usuário</DialogTitle>
+   724→            <DialogDescription className="text-gray-400">Altere o cargo, plano e status do usuário</DialogDescription>
+   725→          </DialogHeader>
+   726→          <div className="space-y-4 py-2">
+   727→            <div className="space-y-2">
+   728→              <Label className="text-gray-300">Nome</Label>
+   729→              <Input value={editDialog?.name || ''} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
+   730→            </div>
+   731→            <div className="space-y-2">
+   732→              <Label className="text-gray-300">Cargo</Label>
+   733→              <Select value={editRole} onValueChange={setEditRole}>
+   734→                <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+   735→                <SelectContent>
+   736→                  <SelectItem value="free">Free</SelectItem>
+   737→                  <SelectItem value="premium">Premium</SelectItem>
+   738→                  <SelectItem value="creator">Criador</SelectItem>
+   739→                  <SelectItem value="moderator">Moderador</SelectItem>
+   740→                  <SelectItem value="admin">Admin</SelectItem>
+   741→                </SelectContent>
+   742→              </Select>
+   743→            </div>
+   744→            <div className="space-y-2">
+   745→              <Label className="text-gray-300">Plano</Label>
+   746→              <Select value={editPlan} onValueChange={setEditPlan}>
+   747→                <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+   748→                <SelectContent>
+   749→                  <SelectItem value="free">Free</SelectItem>
+   750→                  <SelectItem value="premium_individual">Premium Individual</SelectItem>
+   751→                  <SelectItem value="premium_duo">Premium Duo</SelectItem>
+   752→                  <SelectItem value="premium_familia">Premium Família</SelectItem>
+   753→                  <SelectItem value="premium_estudante">Premium Estudante</SelectItem>
+   754→                </SelectContent>
+   755→              </Select>
+   756→            </div>
+   757→            <div className="space-y-2">
+   758→              <Label className="text-gray-300">Status</Label>
+   759→              <Select value={editStatus} onValueChange={setEditStatus}>
+   760→                <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+   761→                <SelectContent>
+   762→                  <SelectItem value="active">Ativo</SelectItem>
+   763→                  <SelectItem value="suspended">Suspenso</SelectItem>
+   764→                  <SelectItem value="banned">Banido</SelectItem>
+   765→                </SelectContent>
+   766→              </Select>
+   767→            </div>
+   768→          </div>
+   769→          <DialogFooter>
+   770→            <Button variant="ghost" className="text-gray-400" onClick={() => setEditDialog(null)}>Cancelar</Button>
+   771→            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleSaveUser}>Salvar</Button>
+   772→          </DialogFooter>
+   773→        </DialogContent>
+   774→      </Dialog>
+   775→    </div>
+   776→  );
+   777→}
+   778→
+   779→// ===== ASSINATURAS VIEW =====
+   780→
+   781→function SubscriptionsView() {
+   782→  const [statusFilter, setStatusFilter] = useState('all');
+   783→  const [planFilter, setPlanFilter] = useState('all');
+   784→
+   785→  const filtered = mockSubscriptions.filter((s) => {
+   786→    const matchStatus = statusFilter === 'all' || s.status === statusFilter;
+   787→    const matchPlan = planFilter === 'all' || s.plan === planFilter;
+   788→    return matchStatus && matchPlan;
+   789→  });
+   790→
+   791→  const totalSubscribers = mockSubscriptions.filter(s => s.status === 'active').length;
+   792→  const mrr = mockSubscriptions.filter(s => s.status === 'active').reduce((acc, s) => acc + s.price, 0);
+   793→  const churnRate = ((mockSubscriptions.filter(s => s.status === 'canceled').length / mockSubscriptions.length) * 100).toFixed(1);
+   794→  const avgRevenue = mrr / totalSubscribers;
+   795→
+   796→  return (
+   797→    <div className="space-y-6">
+   798→      <div>
+   799→        <h2 className="text-2xl font-bold text-white">Assinaturas</h2>
+   800→        <p className="text-sm text-gray-400 mt-1">Gerenciar assinaturas e planos</p>
+   801→      </div>
+   802→
+   803→      {/* Stats */}
+   804→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   805→        {[
+   806→          { title: 'Total Assinantes', value: totalSubscribers.toString(), icon: Users, color: 'emerald' },
+   807→          { title: 'MRR', value: formatCurrency(mrr), icon: CreditCard, color: 'amber' },
+   808→          { title: 'Taxa de Churn', value: `${churnRate}%`, icon: TrendingDown, color: 'red' },
+   809→          { title: 'Receita Média', value: formatCurrency(avgRevenue), icon: DollarSign, color: 'emerald' },
+   810→        ].map((stat) => (
+   811→          <Card key={stat.title} className="bg-gray-900 border-white/5">
+   812→            <CardContent className="p-5">
+   813→              <div className="flex items-center justify-between">
+   814→                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${stat.color === 'amber' ? 'bg-amber-500/15' : stat.color === 'red' ? 'bg-red-500/15' : 'bg-emerald-500/15'}`}>
+   815→                  <stat.icon className={`h-5 w-5 ${stat.color === 'amber' ? 'text-amber-400' : stat.color === 'red' ? 'text-red-400' : 'text-emerald-400'}`} />
+   816→                </div>
+   817→              </div>
+   818→              <div className="mt-3">
+   819→                <p className="text-2xl font-bold text-white">{stat.value}</p>
+   820→                <p className="text-xs text-gray-400 mt-1">{stat.title}</p>
+   821→              </div>
+   822→            </CardContent>
+   823→          </Card>
+   824→        ))}
+   825→      </div>
+   826→
+   827→      {/* Filters */}
+   828→      <div className="flex items-center gap-3 flex-wrap">
+   829→        <Select value={statusFilter} onValueChange={setStatusFilter}>
+   830→          <SelectTrigger className="w-[160px] bg-gray-800 border-gray-700 text-white">
+   831→            <SelectValue placeholder="Status" />
+   832→          </SelectTrigger>
+   833→          <SelectContent>
+   834→            <SelectItem value="all">Todos</SelectItem>
+   835→            <SelectItem value="active">Ativo</SelectItem>
+   836→            <SelectItem value="canceled">Cancelado</SelectItem>
+   837→            <SelectItem value="expired">Expirado</SelectItem>
+   838→            <SelectItem value="past_due">Em Atraso</SelectItem>
+   839→          </SelectContent>
+   840→        </Select>
+   841→        <Select value={planFilter} onValueChange={setPlanFilter}>
+   842→          <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+   843→            <SelectValue placeholder="Plano" />
+   844→          </SelectTrigger>
+   845→          <SelectContent>
+   846→            <SelectItem value="all">Todos os Planos</SelectItem>
+   847→            <SelectItem value="Premium Individual">Premium Individual</SelectItem>
+   848→            <SelectItem value="Premium Duo">Premium Duo</SelectItem>
+   849→            <SelectItem value="Premium Família">Premium Família</SelectItem>
+   850→            <SelectItem value="Premium Estudante">Premium Estudante</SelectItem>
+   851→          </SelectContent>
+   852→        </Select>
+   853→      </div>
+   854→
+   855→      {/* Table */}
+   856→      <Card className="bg-gray-900 border-white/5">
+   857→        <CardContent className="p-0">
+   858→          <Table>
+   859→            <TableHeader>
+   860→              <TableRow className="border-white/5 hover:bg-transparent">
+   861→                <TableHead className="text-gray-400">Usuário</TableHead>
+   862→                <TableHead className="text-gray-400">Plano</TableHead>
+   863→                <TableHead className="text-gray-400">Preço</TableHead>
+   864→                <TableHead className="text-gray-400">Status</TableHead>
+   865→                <TableHead className="text-gray-400">Cobrança</TableHead>
+   866→                <TableHead className="text-gray-400">Próx. Cobrança</TableHead>
+   867→              </TableRow>
+   868→            </TableHeader>
+   869→            <TableBody>
+   870→              {filtered.map((sub) => (
+   871→                <TableRow key={sub.id} className="border-white/5 hover:bg-white/[0.02]">
+   872→                  <TableCell className="text-sm text-white font-medium">{sub.userName}</TableCell>
+   873→                  <TableCell className="text-sm text-gray-300">{sub.plan}</TableCell>
+   874→                  <TableCell className="text-sm text-emerald-400 font-medium">{formatCurrency(sub.price)}</TableCell>
+   875→                  <TableCell><StatusBadge status={sub.status} /></TableCell>
+   876→                  <TableCell>
+   877→                    <Badge className="bg-gray-700/50 text-gray-300 border border-gray-600/30 text-xs">
+   878→                      {sub.billingMethod === 'PIX' ? 'PIX' : sub.billingMethod === 'Cartão' ? 'Cartão' : 'Boleto'}
+   879→                    </Badge>
+   880→                  </TableCell>
+   881→                  <TableCell className="text-sm text-gray-400">{new Date(sub.nextBilling).toLocaleDateString('pt-BR')}</TableCell>
+   882→                </TableRow>
+   883→              ))}
+   884→            </TableBody>
+   885→          </Table>
+   886→        </CardContent>
+   887→      </Card>
+   888→    </div>
+   889→  );
+   890→}
+   891→
+   892→// ===== PAGAMENTOS VIEW =====
+   893→
+   894→function PaymentsView() {
+   895→  const [methodFilter, setMethodFilter] = useState('all');
+   896→  const [statusFilter, setStatusFilter] = useState('all');
+   897→
+   898→  const filtered = mockPayments.filter((p) => {
+   899→    const matchMethod = methodFilter === 'all' || p.method === methodFilter;
+   900→    const matchStatus = statusFilter === 'all' || p.status === statusFilter;
+   901→    return matchMethod && matchStatus;
+   902→  });
+   903→
+   904→  const totalReceived = mockPayments.filter(p => p.status === 'confirmed').reduce((acc, p) => acc + p.amount, 0);
+   905→  const totalPending = mockPayments.filter(p => p.status === 'pending').reduce((acc, p) => acc + p.amount, 0);
+   906→  const totalFailed = mockPayments.filter(p => p.status === 'failed').reduce((acc, p) => acc + p.amount, 0);
+   907→  const totalRefunded = mockPayments.filter(p => p.status === 'refunded').reduce((acc, p) => acc + p.amount, 0);
+   908→
+   909→  return (
+   910→    <div className="space-y-6">
+   911→      <div className="flex items-center justify-between flex-wrap gap-3">
+   912→        <div>
+   913→          <h2 className="text-2xl font-bold text-white">Pagamentos</h2>
+   914→          <p className="text-sm text-gray-400 mt-1">Histórico e gestão de pagamentos</p>
+   915→        </div>
+   916→        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+   917→          <Download className="h-4 w-4 mr-2" /> Exportar CSV
+   918→        </Button>
+   919→      </div>
+   920→
+   921→      {/* Stats */}
+   922→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   923→        {[
+   924→          { title: 'Total Recebido', value: formatCurrency(totalReceived), icon: DollarSign, color: 'emerald' },
+   925→          { title: 'Pendente', value: formatCurrency(totalPending), icon: Clock, color: 'amber' },
+   926→          { title: 'Falhou', value: formatCurrency(totalFailed), icon: XCircle, color: 'red' },
+   927→          { title: 'Reembolsado', value: formatCurrency(totalRefunded), icon: RefreshCw, color: 'purple' },
+   928→        ].map((stat) => (
+   929→          <Card key={stat.title} className="bg-gray-900 border-white/5">
+   930→            <CardContent className="p-5">
+   931→              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+   932→                stat.color === 'amber' ? 'bg-amber-500/15' : stat.color === 'red' ? 'bg-red-500/15' : stat.color === 'purple' ? 'bg-purple-500/15' : 'bg-emerald-500/15'
+   933→              }`}>
+   934→                <stat.icon className={`h-5 w-5 ${
+   935→                  stat.color === 'amber' ? 'text-amber-400' : stat.color === 'red' ? 'text-red-400' : stat.color === 'purple' ? 'text-purple-400' : 'text-emerald-400'
+   936→                }`} />
+   937→              </div>
+   938→              <div className="mt-3">
+   939→                <p className="text-2xl font-bold text-white">{stat.value}</p>
+   940→                <p className="text-xs text-gray-400 mt-1">{stat.title}</p>
+   941→              </div>
+   942→            </CardContent>
+   943→          </Card>
+   944→        ))}
+   945→      </div>
+   946→
+   947→      {/* Filters */}
+   948→      <div className="flex items-center gap-3 flex-wrap">
+   949→        <Select value={methodFilter} onValueChange={setMethodFilter}>
+   950→          <SelectTrigger className="w-[180px] bg-gray-800 border-gray-700 text-white">
+   951→            <SelectValue placeholder="Método" />
+   952→          </SelectTrigger>
+   953→          <SelectContent>
+   954→            <SelectItem value="all">Todos os Métodos</SelectItem>
+   955→            <SelectItem value="PIX">PIX</SelectItem>
+   956→            <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
+   957→            <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
+   958→          </SelectContent>
+   959→        </Select>
+   960→        <Select value={statusFilter} onValueChange={setStatusFilter}>
+   961→          <SelectTrigger className="w-[160px] bg-gray-800 border-gray-700 text-white">
+   962→            <SelectValue placeholder="Status" />
+   963→          </SelectTrigger>
+   964→          <SelectContent>
+   965→            <SelectItem value="all">Todos</SelectItem>
+   966→            <SelectItem value="confirmed">Confirmado</SelectItem>
+   967→            <SelectItem value="pending">Pendente</SelectItem>
+   968→            <SelectItem value="failed">Falhou</SelectItem>
+   969→            <SelectItem value="refunded">Reembolsado</SelectItem>
+   970→          </SelectContent>
+   971→        </Select>
+   972→      </div>
+   973→
+   974→      {/* Table */}
+   975→      <Card className="bg-gray-900 border-white/5">
+   976→        <CardContent className="p-0">
+   977→          <Table>
+   978→            <TableHeader>
+   979→              <TableRow className="border-white/5 hover:bg-transparent">
+   980→                <TableHead className="text-gray-400">ID</TableHead>
+   981→                <TableHead className="text-gray-400">Usuário</TableHead>
+   982→                <TableHead className="text-gray-400">Valor</TableHead>
+   983→                <TableHead className="text-gray-400">Método</TableHead>
+   984→                <TableHead className="text-gray-400">Status</TableHead>
+   985→                <TableHead className="text-gray-400">Data</TableHead>
+   986→              </TableRow>
+   987→            </TableHeader>
+   988→            <TableBody>
+   989→              {filtered.map((payment) => (
+   990→                <TableRow key={payment.id} className="border-white/5 hover:bg-white/[0.02]">
+   991→                  <TableCell className="text-sm text-gray-400 font-mono">{payment.id}</TableCell>
+   992→                  <TableCell className="text-sm text-white font-medium">{payment.userName}</TableCell>
+   993→                  <TableCell className="text-sm text-emerald-400 font-medium">{formatCurrency(payment.amount)}</TableCell>
+   994→                  <TableCell>
+   995→                    <Badge className="bg-gray-700/50 text-gray-300 border border-gray-600/30 text-xs">
+   996→                      {payment.method}
+   997→                    </Badge>
+   998→                  </TableCell>
+   999→                  <TableCell><StatusBadge status={payment.status} /></TableCell>
+  1000→                  <TableCell className="text-sm text-gray-400">{new Date(payment.date).toLocaleDateString('pt-BR')}</TableCell>
+  1001→                </TableRow>
+  1002→              ))}
+  1003→            </TableBody>
+  1004→          </Table>
+  1005→        </CardContent>
+  1006→      </Card>
+  1007→    </div>
+  1008→  );
+  1009→}
+  1010→
+  1011→// ===== CRIADORES VIEW =====
+  1012→
+  1013→function CreatorsView() {
+  1014→  const [creators, setCreators] = useState(mockArtists);
+  1015→
+  1016→  const handleVerify = (id: string) => {
+  1017→    setCreators(prev => prev.map(c => c.id === id ? { ...c, verified: !c.verified } : c));
+  1018→  };
+  1019→
+  1020→  return (
+  1021→    <div className="space-y-6">
+  1022→      <div>
+  1023→        <h2 className="text-2xl font-bold text-white">Criadores</h2>
+  1024→        <p className="text-sm text-gray-400 mt-1">Gerenciar artistas e criadores de conteúdo</p>
+  1025→      </div>
+  1026→
+  1027→      <Card className="bg-gray-900 border-white/5">
+  1028→        <CardContent className="p-0">
+  1029→          <Table>
+  1030→            <TableHeader>
+  1031→              <TableRow className="border-white/5 hover:bg-transparent">
+  1032→                <TableHead className="text-gray-400">Artista</TableHead>
+  1033→                <TableHead className="text-gray-400">Gênero</TableHead>
+  1034→                <TableHead className="text-gray-400">Verificado</TableHead>
+  1035→                <TableHead className="text-gray-400">Ouvintes/Mês</TableHead>
+  1036→                <TableHead className="text-gray-400">Total Plays</TableHead>
+  1037→                <TableHead className="text-gray-400 text-right">Ações</TableHead>
+  1038→              </TableRow>
+  1039→            </TableHeader>
+  1040→            <TableBody>
+  1041→              {creators.map((creator) => (
+  1042→                <TableRow key={creator.id} className="border-white/5 hover:bg-white/[0.02]">
+  1043→                  <TableCell>
+  1044→                    <div className="flex items-center gap-3">
+  1045→                      <Avatar className="h-9 w-9">
+  1046→                        <AvatarImage src={creator.avatar} />
+  1047→                        <AvatarFallback className="bg-gray-700 text-gray-300 text-xs">{creator.stageName.charAt(0)}</AvatarFallback>
+  1048→                      </Avatar>
+  1049→                      <span className="text-sm font-medium text-white">{creator.stageName}</span>
+  1050→                    </div>
+  1051→                  </TableCell>
+  1052→                  <TableCell className="text-sm text-gray-300">{creator.genre}</TableCell>
+  1053→                  <TableCell>
+  1054→                    {creator.verified ? (
+  1055→                      <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs">
+  1056→                        <CheckCircle2 className="h-3 w-3 mr-1" /> Verificado
+  1057→                      </Badge>
+  1058→                    ) : (
+  1059→                      <Badge className="bg-gray-700/50 text-gray-400 border border-gray-600/30 text-xs">Não verificado</Badge>
+  1060→                    )}
+  1061→                  </TableCell>
+  1062→                  <TableCell className="text-sm text-gray-300">{formatPlayCount(creator.monthlyListeners)}</TableCell>
+  1063→                  <TableCell className="text-sm text-gray-300">{formatPlayCount(creator.totalPlays)}</TableCell>
+  1064→                  <TableCell className="text-right">
+  1065→                    <div className="flex items-center justify-end gap-1">
+  1066→                      <Button
+  1067→                        variant="ghost"
+  1068→                        size="sm"
+  1069→                        className={`h-8 text-xs ${creator.verified ? 'text-emerald-400 hover:text-emerald-300' : 'text-amber-400 hover:text-amber-300'}`}
+  1070→                        onClick={() => handleVerify(creator.id)}
+  1071→                      >
+  1072→                        {creator.verified ? 'Desverificar' : 'Verificar'}
+  1073→                      </Button>
+  1074→                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white">
+  1075→                        <Eye className="h-4 w-4" />
+  1076→                      </Button>
+  1077→                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300">
+  1078→                        <Ban className="h-4 w-4" />
+  1079→                      </Button>
+  1080→                    </div>
+  1081→                  </TableCell>
+  1082→                </TableRow>
+  1083→              ))}
+  1084→            </TableBody>
+  1085→          </Table>
+  1086→        </CardContent>
+  1087→      </Card>
+  1088→    </div>
+  1089→  );
+  1090→}
+  1091→
+  1092→// ===== MÚSICAS VIEW =====
+  1093→
+  1094→function SongsView() {
+  1095→  const [songs, setSongs] = useState(mockSongs.map(s => ({ ...s, status: s.status as 'approved' | 'pending' | 'rejected' })));
+  1096→  const [statusFilter, setStatusFilter] = useState('all');
+  1097→  const [genreFilter, setGenreFilter] = useState('all');
+  1098→  const [selectedSongs, setSelectedSongs] = useState<Set<string>>(new Set());
+  1099→
+  1100→  // Add some pending songs for demo
+  1101→  const allSongs = [
+  1102→    ...songs,
+  1103→    { id: 's13', title: 'Sertanejo Universitário', artistId: 'a2', artistName: 'Marina Silva', albumId: 'al2', albumName: 'Horizonte', duration: 215, audioUrl: '/audio/s13.mp3', coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&h=300&fit=crop', genre: 'Sertanejo', playCount: 0, likeCount: 0, isExplicit: false, status: 'pending' as const, releaseDate: '2025-06-20', isLiked: false },
+  1104→    { id: 's14', title: 'Funk do Momento', artistId: 'a8', artistName: 'Isabela Ferreira', albumId: 'al8', albumName: 'Fogo', duration: 180, audioUrl: '/audio/s14.mp3', coverUrl: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=300&h=300&fit=crop', genre: 'Funk', playCount: 0, likeCount: 0, isExplicit: true, status: 'pending' as const, releaseDate: '2025-06-22', isLiked: false },
+  1105→    { id: 's15', title: 'Rock Brasileiro', artistId: 'a7', artistName: 'Rafael Torres', albumId: 'al7', albumName: 'Escapadas', duration: 240, audioUrl: '/audio/s15.mp3', coverUrl: 'https://images.unsplash.com/photo-1485579149621-3123dd979885?w=300&h=300&fit=crop', genre: 'Rock', playCount: 0, likeCount: 0, isExplicit: false, status: 'pending' as const, releaseDate: '2025-06-25', isLiked: false },
+  1106→  ];
+  1107→
+  1108→  const [allSongsState, setAllSongsState] = useState(allSongs);
+  1109→
+  1110→  const filtered = allSongsState.filter((s) => {
+  1111→    const matchStatus = statusFilter === 'all' || s.status === statusFilter;
+  1112→    const matchGenre = genreFilter === 'all' || s.genre === genreFilter;
+  1113→    return matchStatus && matchGenre;
+  1114→  });
+  1115→
+  1116→  const toggleSelect = (id: string) => {
+  1117→    setSelectedSongs(prev => {
+  1118→      const next = new Set(prev);
+  1119→      if (next.has(id)) next.delete(id); else next.add(id);
+  1120→      return next;
+  1121→    });
+  1122→  };
+  1123→
+  1124→  const handleApprove = (id: string) => {
+  1125→    setAllSongsState(prev => prev.map(s => s.id === id ? { ...s, status: 'approved' as const } : s));
+  1126→  };
+  1127→
+  1128→  const handleReject = (id: string) => {
+  1129→    setAllSongsState(prev => prev.map(s => s.id === id ? { ...s, status: 'rejected' as const } : s));
+  1130→  };
+  1131→
+  1132→  const handleBulkApprove = () => {
+  1133→    setAllSongsState(prev => prev.map(s => selectedSongs.has(s.id) ? { ...s, status: 'approved' as const } : s));
+  1134→    setSelectedSongs(new Set());
+  1135→  };
+  1136→
+  1137→  const handleBulkReject = () => {
+  1138→    setAllSongsState(prev => prev.map(s => selectedSongs.has(s.id) ? { ...s, status: 'rejected' as const } : s));
+  1139→    setSelectedSongs(new Set());
+  1140→  };
+  1141→
+  1142→  const genres = [...new Set(allSongsState.map(s => s.genre).filter(Boolean))];
+  1143→
+  1144→  return (
+  1145→    <div className="space-y-6">
+  1146→      <div>
+  1147→        <h2 className="text-2xl font-bold text-white">Músicas</h2>
+  1148→        <p className="text-sm text-gray-400 mt-1">Moderar e aprovar conteúdos musicais</p>
+  1149→      </div>
+  1150→
+  1151→      {/* Bulk Actions */}
+  1152→      {selectedSongs.size > 0 && (
+  1153→        <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+  1154→          <span className="text-sm text-amber-400 font-medium">{selectedSongs.size} selecionada(s)</span>
+  1155→          <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleBulkApprove}>
+  1156→            <Check className="h-3 w-3 mr-1" /> Aprovar
+  1157→          </Button>
+  1158→          <Button size="sm" variant="destructive" onClick={handleBulkReject}>
+  1159→            <X className="h-3 w-3 mr-1" /> Rejeitar
+  1160→          </Button>
+  1161→          <Button size="sm" variant="ghost" className="text-gray-400" onClick={() => setSelectedSongs(new Set())}>
+  1162→            Cancelar
+  1163→          </Button>
+  1164→        </div>
+  1165→      )}
+  1166→
+  1167→      {/* Filters */}
+  1168→      <div className="flex items-center gap-3 flex-wrap">
+  1169→        <Select value={statusFilter} onValueChange={setStatusFilter}>
+  1170→          <SelectTrigger className="w-[160px] bg-gray-800 border-gray-700 text-white">
+  1171→            <SelectValue placeholder="Status" />
+  1172→          </SelectTrigger>
+  1173→          <SelectContent>
+  1174→            <SelectItem value="all">Todos</SelectItem>
+  1175→            <SelectItem value="approved">Aprovado</SelectItem>
+  1176→            <SelectItem value="pending">Pendente</SelectItem>
+  1177→            <SelectItem value="rejected">Rejeitado</SelectItem>
+  1178→          </SelectContent>
+  1179→        </Select>
+  1180→        <Select value={genreFilter} onValueChange={setGenreFilter}>
+  1181→          <SelectTrigger className="w-[160px] bg-gray-800 border-gray-700 text-white">
+  1182→            <SelectValue placeholder="Gênero" />
+  1183→          </SelectTrigger>
+  1184→          <SelectContent>
+  1185→            <SelectItem value="all">Todos os Gêneros</SelectItem>
+  1186→            {genres.map(g => g && <SelectItem key={g} value={g}>{g}</SelectItem>)}
+  1187→          </SelectContent>
+  1188→        </Select>
+  1189→      </div>
+  1190→
+  1191→      {/* Table */}
+  1192→      <Card className="bg-gray-900 border-white/5">
+  1193→        <CardContent className="p-0">
+  1194→          <Table>
+  1195→            <TableHeader>
+  1196→              <TableRow className="border-white/5 hover:bg-transparent">
+  1197→                <TableHead className="text-gray-400 w-10"></TableHead>
+  1198→                <TableHead className="text-gray-400">Música</TableHead>
+  1199→                <TableHead className="text-gray-400">Artista</TableHead>
+  1200→                <TableHead className="text-gray-400">Gênero</TableHead>
+  1201→                <TableHead className="text-gray-400">Plays</TableHead>
+  1202→                <TableHead className="text-gray-400">Status</TableHead>
+  1203→                <TableHead className="text-gray-400 text-right">Ações</TableHead>
+  1204→              </TableRow>
+  1205→            </TableHeader>
+  1206→            <TableBody>
+  1207→              {filtered.map((song) => (
+  1208→                <TableRow key={song.id} className="border-white/5 hover:bg-white/[0.02]">
+  1209→                  <TableCell>
+  1210→                    <input
+  1211→                      type="checkbox"
+  1212→                      checked={selectedSongs.has(song.id)}
+  1213→                      onChange={() => toggleSelect(song.id)}
+  1214→                      className="h-4 w-4 rounded border-gray-600 bg-gray-800 text-emerald-500 focus:ring-emerald-500"
+  1215→                    />
+  1216→                  </TableCell>
+  1217→                  <TableCell>
+  1218→                    <div className="flex items-center gap-3">
+  1219→                      <Avatar className="h-9 w-9 rounded">
+  1220→                        <AvatarImage src={song.coverUrl} />
+  1221→                        <AvatarFallback className="bg-gray-800 text-gray-400 text-xs"><Music className="h-4 w-4" /></AvatarFallback>
+  1222→                      </Avatar>
+  1223→                      <div className="min-w-0">
+  1224→                        <p className="text-sm font-medium text-white truncate">{song.title}</p>
+  1225→                        {song.isExplicit && <Badge className="bg-gray-700 text-gray-300 text-[9px] px-1 py-0 ml-1">EXPLÍCITO</Badge>}
+  1226→                      </div>
+  1227→                    </div>
+  1228→                  </TableCell>
+  1229→                  <TableCell className="text-sm text-gray-300">{song.artistName}</TableCell>
+  1230→                  <TableCell className="text-sm text-gray-300">{song.genre}</TableCell>
+  1231→                  <TableCell className="text-sm text-gray-300">{formatPlayCount(song.playCount)}</TableCell>
+  1232→                  <TableCell><StatusBadge status={song.status} /></TableCell>
+  1233→                  <TableCell className="text-right">
+  1234→                    <div className="flex items-center justify-end gap-1">
+  1235→                      {song.status === 'pending' && (
+  1236→                        <>
+  1237→                          <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-400 hover:text-emerald-300" onClick={() => handleApprove(song.id)}>
+  1238→                            <Check className="h-4 w-4" />
+  1239→                          </Button>
+  1240→                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300" onClick={() => handleReject(song.id)}>
+  1241→                            <X className="h-4 w-4" />
+  1242→                          </Button>
+  1243→                        </>
+  1244→                      )}
+  1245→                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300">
+  1246→                        <Trash2 className="h-4 w-4" />
+  1247→                      </Button>
+  1248→                    </div>
+  1249→                  </TableCell>
+  1250→                </TableRow>
+  1251→              ))}
+  1252→            </TableBody>
+  1253→          </Table>
+  1254→        </CardContent>
+  1255→      </Card>
+  1256→    </div>
+  1257→  );
+  1258→}
+  1259→
+  1260→// ===== PODCASTS VIEW =====
+  1261→
+  1262→function PodcastsView() {
+  1263→  const [podcasts, setPodcasts] = useState(mockPodcasts.map(p => ({ ...p, status: 'approved' as const, episodeCount: Math.floor(Math.random() * 50) + 5 })));
+  1264→
+  1265→  return (
+  1266→    <div className="space-y-6">
+  1267→      <div>
+  1268→        <h2 className="text-2xl font-bold text-white">Podcasts</h2>
+  1269→        <p className="text-sm text-gray-400 mt-1">Gerenciar podcasts e episódios</p>
+  1270→      </div>
+  1271→
+  1272→      <Card className="bg-gray-900 border-white/5">
+  1273→        <CardContent className="p-0">
+  1274→          <Table>
+  1275→            <TableHeader>
+  1276→              <TableRow className="border-white/5 hover:bg-transparent">
+  1277→                <TableHead className="text-gray-400">Podcast</TableHead>
+  1278→                <TableHead className="text-gray-400">Criador</TableHead>
+  1279→                <TableHead className="text-gray-400">Categoria</TableHead>
+  1280→                <TableHead className="text-gray-400">Episódios</TableHead>
+  1281→                <TableHead className="text-gray-400">Exclusivo</TableHead>
+  1282→                <TableHead className="text-gray-400 text-right">Ações</TableHead>
+  1283→              </TableRow>
+  1284→            </TableHeader>
+  1285→            <TableBody>
+  1286→              {podcasts.map((podcast) => (
+  1287→                <TableRow key={podcast.id} className="border-white/5 hover:bg-white/[0.02]">
+  1288→                  <TableCell>
+  1289→                    <div className="flex items-center gap-3">
+  1290→                      <Avatar className="h-9 w-9 rounded">
+  1291→                        <AvatarImage src={podcast.coverUrl} />
+  1292→                        <AvatarFallback className="bg-gray-800 text-gray-400 text-xs"><Radio className="h-4 w-4" /></AvatarFallback>
+  1293→                      </Avatar>
+  1294→                      <span className="text-sm font-medium text-white">{podcast.title}</span>
+  1295→                    </div>
+  1296→                  </TableCell>
+  1297→                  <TableCell className="text-sm text-gray-300">{podcast.artistName}</TableCell>
+  1298→                  <TableCell className="text-sm text-gray-300">{podcast.category}</TableCell>
+  1299→                  <TableCell className="text-sm text-gray-300">{(podcast as { episodeCount: number }).episodeCount}</TableCell>
+  1300→                  <TableCell>
+  1301→                    {podcast.isExclusive ? (
+  1302→                      <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs">Exclusivo</Badge>
+  1303→                    ) : (
+  1304→                      <Badge className="bg-gray-700/50 text-gray-400 border border-gray-600/30 text-xs">Público</Badge>
+  1305→                    )}
+  1306→                  </TableCell>
+  1307→                  <TableCell className="text-right">
+  1308→                    <div className="flex items-center justify-end gap-1">
+  1309→                      <Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-400 hover:text-emerald-300">
+  1310→                        <Check className="h-4 w-4" />
+  1311→                      </Button>
+  1312→                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300">
+  1313→                        <Trash2 className="h-4 w-4" />
+  1314→                      </Button>
+  1315→                    </div>
+  1316→                  </TableCell>
+  1317→                </TableRow>
+  1318→              ))}
+  1319→            </TableBody>
+  1320→          </Table>
+  1321→        </CardContent>
+  1322→      </Card>
+  1323→    </div>
+  1324→  );
+  1325→}
+  1326→
+  1327→// ===== LIVES VIEW =====
+  1328→
+  1329→function LivesView() {
+  1330→  const [streams, setStreams] = useState(mockLiveStreams.map(s => ({
+  1331→    ...s,
+  1332→    status: s.isLive ? 'live' as const : s.isScheduled ? 'scheduled' as const : 'ended' as const,
+  1333→  })));
+  1334→
+  1335→  const handleEndLive = (id: string) => {
+  1336→    setStreams(prev => prev.map(s => s.id === id ? { ...s, status: 'ended' as const, isLive: false } : s));
+  1337→  };
+  1338→
+  1339→  return (
+  1340→    <div className="space-y-6">
+  1341→      <div>
+  1342→        <h2 className="text-2xl font-bold text-white">Lives</h2>
+  1343→        <p className="text-sm text-gray-400 mt-1">Gerenciar transmissões ao vivo</p>
+  1344→      </div>
+  1345→
+  1346→      <Card className="bg-gray-900 border-white/5">
+  1347→        <CardContent className="p-0">
+  1348→          <Table>
+  1349→            <TableHeader>
+  1350→              <TableRow className="border-white/5 hover:bg-transparent">
+  1351→                <TableHead className="text-gray-400">Live</TableHead>
+  1352→                <TableHead className="text-gray-400">Artista</TableHead>
+  1353→                <TableHead className="text-gray-400">Status</TableHead>
+  1354→                <TableHead className="text-gray-400">Visualizadores</TableHead>
+  1355→                <TableHead className="text-gray-400 text-right">Ações</TableHead>
+  1356→              </TableRow>
+  1357→            </TableHeader>
+  1358→            <TableBody>
+  1359→              {streams.map((stream) => (
+  1360→                <TableRow key={stream.id} className="border-white/5 hover:bg-white/[0.02]">
+  1361→                  <TableCell>
+  1362→                    <div className="flex items-center gap-3">
+  1363→                      <Avatar className="h-9 w-9 rounded">
+  1364→                        <AvatarImage src={stream.thumbnail} />
+  1365→                        <AvatarFallback className="bg-gray-800 text-gray-400 text-xs"><Radio className="h-4 w-4" /></AvatarFallback>
+  1366→                      </Avatar>
+  1367→                      <span className="text-sm font-medium text-white">{stream.title}</span>
+  1368→                    </div>
+  1369→                  </TableCell>
+  1370→                  <TableCell className="text-sm text-gray-300">{stream.artistName}</TableCell>
+  1371→                  <TableCell><StatusBadge status={stream.status} /></TableCell>
+  1372→                  <TableCell className="text-sm text-gray-300">
+  1373→                    {stream.status === 'live' ? (
+  1374→                      <span className="text-red-400 font-medium">{stream.viewerCount.toLocaleString('pt-BR')}</span>
+  1375→                    ) : stream.status === 'ended' ? (
+  1376→                      <span className="text-gray-500">{stream.maxViewers.toLocaleString('pt-BR')} pico</span>
+  1377→                    ) : (
+  1378→                      <span className="text-gray-500">—</span>
+  1379→                    )}
+  1380→                  </TableCell>
+  1381→                  <TableCell className="text-right">
+  1382→                    <div className="flex items-center justify-end gap-1">
+  1383→                      {stream.status === 'live' && (
+  1384→                        <Button variant="ghost" size="sm" className="h-8 text-xs text-amber-400 hover:text-amber-300" onClick={() => handleEndLive(stream.id)}>
+  1385→                          Encerrar
+  1386→                        </Button>
+  1387→                      )}
+  1388→                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300">
+  1389→                        <Trash2 className="h-4 w-4" />
+  1390→                      </Button>
+  1391→                    </div>
+  1392→                  </TableCell>
+  1393→                </TableRow>
+  1394→              ))}
+  1395→            </TableBody>
+  1396→          </Table>
+  1397→        </CardContent>
+  1398→      </Card>
+  1399→    </div>
+  1400→  );
+  1401→}
+  1402→
+  1403→// ===== ANÚNCIOS VIEW =====
+  1404→
+  1405→function AdsView() {
+  1406→  const [campaigns, setCampaigns] = useState(mockAdCampaigns);
+  1407→  const [createDialog, setCreateDialog] = useState(false);
+  1408→  const [editingCampaign, setEditingCampaign] = useState<string | null>(null);
+  1409→  const [audioFile, setAudioFile] = useState<File | null>(null);
+  1410→  const [isDragOver, setIsDragOver] = useState(false);
+  1411→  const [newCampaign, setNewCampaign] = useState({
+  1412→    name: '', type: 'audio' as 'audio' | 'video' | 'banner',
+  1413→    targetUrl: '', duration: '30', frequency: '3', budget: '',
+  1414→  });
+  1415→
+  1416→  const handleToggleCampaign = (id: string) => {
+  1417→    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'active' ? 'inactive' as const : 'active' as const } : c));
+  1418→  };
+  1419→
+  1420→  const resetForm = () => {
+  1421→    setNewCampaign({ name: '', type: 'audio', targetUrl: '', duration: '30', frequency: '3', budget: '' });
+  1422→    setAudioFile(null);
+  1423→    setEditingCampaign(null);
+  1424→    setIsDragOver(false);
+  1425→  };
+  1426→
+  1427→  const handleOpenCreate = () => {
+  1428→    resetForm();
+  1429→    setCreateDialog(true);
+  1430→  };
+  1431→
+  1432→  const handleOpenEdit = (campaign: MockAdCampaign) => {
+  1433→    setEditingCampaign(campaign.id);
+  1434→    setNewCampaign({
+  1435→      name: campaign.name,
+  1436→      type: campaign.type,
+  1437→      targetUrl: campaign.targetUrl,
+  1438→      duration: String(campaign.duration),
+  1439→      frequency: String(campaign.frequency),
+  1440→      budget: String(campaign.budget),
+  1441→    });
+  1442→    setAudioFile(null);
+  1443→    setCreateDialog(true);
+  1444→  };
+  1445→
+  1446→  const handleCreateCampaign = () => {
+  1447→    if (editingCampaign) {
+  1448→      // Update existing campaign
+  1449→      setCampaigns(prev => prev.map(c => c.id === editingCampaign ? {
+  1450→        ...c,
+  1451→        name: newCampaign.name,
+  1452→        type: newCampaign.type,
+  1453→        targetUrl: newCampaign.targetUrl,
+  1454→        duration: parseInt(newCampaign.duration) || 30,
+  1455→        frequency: parseInt(newCampaign.frequency) || 3,
+  1456→        budget: parseFloat(newCampaign.budget) || 0,
+  1457→        audioFileName: audioFile ? audioFile.name : c.audioFileName,
+  1458→      } : c));
+  1459→    } else {
+  1460→      // Create new campaign
+  1461→      const campaign: MockAdCampaign = {
+  1462→        id: `ad${Date.now()}`,
+  1463→        name: newCampaign.name,
+  1464→        type: newCampaign.type,
+  1465→        status: 'active',
+  1466→        impressions: 0,
+  1467→        clicks: 0,
+  1468→        budget: parseFloat(newCampaign.budget) || 0,
+  1469→        spent: 0,
+  1470→        targetUrl: newCampaign.targetUrl,
+  1471→        duration: parseInt(newCampaign.duration) || 30,
+  1472→        frequency: parseInt(newCampaign.frequency) || 3,
+  1473→        audioFileName: audioFile ? audioFile.name : undefined,
+  1474→      };
+  1475→      setCampaigns(prev => [...prev, campaign]);
+  1476→    }
+  1477→    setCreateDialog(false);
+  1478→    resetForm();
+  1479→  };
+  1480→
+  1481→  const handleAudioDrop = (e: React.DragEvent) => {
+  1482→    e.preventDefault();
+  1483→    setIsDragOver(false);
+  1484→    const file = e.dataTransfer.files[0];
+  1485→    if (file && file.type.startsWith('audio/')) {
+  1486→      setAudioFile(file);
+  1487→    }
+  1488→  };
+  1489→
+  1490→  const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  1491→    const file = e.target.files?.[0];
+  1492→    if (file) {
+  1493→      setAudioFile(file);
+  1494→    }
+  1495→  };
+  1496→
+  1497→  const typeLabels: Record<string, string> = { audio: 'Áudio', video: 'Vídeo', banner: 'Banner' };
+  1498→  const typeIcons: Record<string, React.ElementType> = { audio: Volume2, video: Video, banner: Image };
+  1499→
+  1500→  return (
+  1501→    <div className="space-y-6">
+  1502→      <div className="flex items-center justify-between flex-wrap gap-3">
+  1503→        <div>
+  1504→          <h2 className="text-2xl font-bold text-white">Anúncios</h2>
+  1505→          <p className="text-sm text-gray-400 mt-1">Gerenciar campanhas publicitárias</p>
+  1506→        </div>
+  1507→        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleOpenCreate}>
+  1508→          <Plus className="h-4 w-4 mr-2" /> Nova Campanha
+  1509→        </Button>
+  1510→      </div>
+  1511→
+  1512→      <Card className="bg-gray-900 border-white/5">
+  1513→        <CardContent className="p-0">
+  1514→          <Table>
+  1515→            <TableHeader>
+  1516→              <TableRow className="border-white/5 hover:bg-transparent">
+  1517→                <TableHead className="text-gray-400">Campanha</TableHead>
+  1518→                <TableHead className="text-gray-400">Tipo</TableHead>
+  1519→                <TableHead className="text-gray-400">Áudio</TableHead>
+  1520→                <TableHead className="text-gray-400">Status</TableHead>
+  1521→                <TableHead className="text-gray-400">Impressões</TableHead>
+  1522→                <TableHead className="text-gray-400">Cliques</TableHead>
+  1523→                <TableHead className="text-gray-400">Orçamento</TableHead>
+  1524→                <TableHead className="text-gray-400">Gasto</TableHead>
+  1525→                <TableHead className="text-gray-400 text-right">Ações</TableHead>
+  1526→              </TableRow>
+  1527→            </TableHeader>
+  1528→            <TableBody>
+  1529→              {campaigns.map((campaign) => {
+  1530→                const TypeIcon = typeIcons[campaign.type] || Volume2;
+  1531→                return (
+  1532→                  <TableRow key={campaign.id} className="border-white/5 hover:bg-white/[0.02]">
+  1533→                    <TableCell className="text-sm font-medium text-white">{campaign.name}</TableCell>
+  1534→                    <TableCell>
+  1535→                      <div className="flex items-center gap-2">
+  1536→                        <TypeIcon className="h-4 w-4 text-gray-400" />
+  1537→                        <span className="text-sm text-gray-300">{typeLabels[campaign.type]}</span>
+  1538→                      </div>
+  1539→                    </TableCell>
+  1540→                    <TableCell>
+  1541→                      {campaign.audioFileName ? (
+  1542→                        <div className="flex items-center gap-1.5">
+  1543→                          <Volume2 className="h-3.5 w-3.5 text-emerald-400" />
+  1544→                          <span className="text-xs text-gray-300 truncate max-w-[120px]">{campaign.audioFileName}</span>
+  1545→                        </div>
+  1546→                      ) : (
+  1547→                        <span className="text-xs text-gray-600">—</span>
+  1548→                      )}
+  1549→                    </TableCell>
+  1550→                    <TableCell><StatusBadge status={campaign.status} /></TableCell>
+  1551→                    <TableCell className="text-sm text-gray-300">{campaign.impressions.toLocaleString('pt-BR')}</TableCell>
+  1552→                    <TableCell className="text-sm text-gray-300">{campaign.clicks.toLocaleString('pt-BR')}</TableCell>
+  1553→                    <TableCell className="text-sm text-emerald-400">{formatCurrency(campaign.budget)}</TableCell>
+  1554→                    <TableCell className="text-sm text-gray-300">{formatCurrency(campaign.spent)}</TableCell>
+  1555→                    <TableCell className="text-right">
+  1556→                      <div className="flex items-center justify-end gap-1">
+  1557→                        <Button
+  1558→                          variant="ghost"
+  1559→                          size="sm"
+  1560→                          className="h-7 text-xs text-gray-400 hover:text-white"
+  1561→                          onClick={() => handleOpenEdit(campaign)}
+  1562→                        >
+  1563→                          <Edit3 className="h-3.5 w-3.5 mr-1" /> Editar
+  1564→                        </Button>
+  1565→                        <Switch
+  1566→                          checked={campaign.status === 'active'}
+  1567→                          onCheckedChange={() => handleToggleCampaign(campaign.id)}
+  1568→                          className="data-[state=checked]:bg-emerald-500"
+  1569→                        />
+  1570→                      </div>
+  1571→                    </TableCell>
+  1572→                  </TableRow>
+  1573→                );
+  1574→              })}
+  1575→            </TableBody>
+  1576→          </Table>
+  1577→        </CardContent>
+  1578→      </Card>
+  1579→
+  1580→      {/* Create/Edit Campaign Dialog */}
+  1581→      <Dialog open={createDialog} onOpenChange={(open) => { if (!open) resetForm(); setCreateDialog(open); }}>
+  1582→        <DialogContent className="bg-gray-900 border-gray-700 text-white max-h-[90vh] overflow-y-auto">
+  1583→          <DialogHeader>
+  1584→            <DialogTitle>{editingCampaign ? 'Editar Campanha' : 'Nova Campanha'}</DialogTitle>
+  1585→            <DialogDescription className="text-gray-400">{editingCampaign ? 'Edite os dados da campanha' : 'Crie uma nova campanha publicitária'}</DialogDescription>
+  1586→          </DialogHeader>
+  1587→          <div className="space-y-4 py-2">
+  1588→            <div className="space-y-2">
+  1589→              <Label className="text-gray-300">Nome da Campanha</Label>
+  1590→              <Input
+  1591→                value={newCampaign.name}
+  1592→                onChange={(e) => setNewCampaign(prev => ({ ...prev, name: e.target.value }))}
+  1593→                placeholder="Ex: Promo Verão 2025"
+  1594→                className="bg-gray-800 border-gray-700 text-white"
+  1595→              />
+  1596→            </div>
+  1597→            <div className="space-y-2">
+  1598→              <Label className="text-gray-300">Tipo</Label>
+  1599→              <Select value={newCampaign.type} onValueChange={(v) => setNewCampaign(prev => ({ ...prev, type: v as 'audio' | 'video' | 'banner' }))}>
+  1600→                <SelectTrigger className="bg-gray-800 border-gray-700 text-white"><SelectValue /></SelectTrigger>
+  1601→                <SelectContent>
+  1602→                  <SelectItem value="audio">Áudio</SelectItem>
+  1603→                  <SelectItem value="video">Vídeo</SelectItem>
+  1604→                  <SelectItem value="banner">Banner</SelectItem>
+  1605→                </SelectContent>
+  1606→              </Select>
+  1607→            </div>
+  1608→
+  1609→            {/* Audio Upload Dropzone */}
+  1610→            {(newCampaign.type === 'audio' || newCampaign.type === 'video') && (
+  1611→              <div className="space-y-2">
+  1612→                <Label className="text-gray-300">Arquivo de Áudio</Label>
+  1613→                <div
+  1614→                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+  1615→                    isDragOver
+  1616→                      ? 'border-emerald-400 bg-emerald-500/10'
+  1617→                      : 'border-gray-700 hover:border-gray-500 bg-gray-800/50'
+  1618→                  }`}
+  1619→                  onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+  1620→                  onDragLeave={() => setIsDragOver(false)}
+  1621→                  onDrop={handleAudioDrop}
+  1622→                  onClick={() => document.getElementById('audio-upload-input')?.click()}
+  1623→                >
+  1624→                  <input
+  1625→                    id="audio-upload-input"
+  1626→                    type="file"
+  1627→                    accept="audio/*"
+  1628→                    className="hidden"
+  1629→                    onChange={handleAudioSelect}
+  1630→                  />
+  1631→                  {audioFile ? (
+  1632→                    <div className="flex items-center justify-center gap-2">
+  1633→                      <Volume2 className="h-5 w-5 text-emerald-400" />
+  1634→                      <span className="text-sm text-emerald-400 font-medium">{audioFile.name}</span>
+  1635→                      <Button
+  1636→                        variant="ghost"
+  1637→                        size="icon"
+  1638→                        className="h-6 w-6 text-gray-400 hover:text-red-400"
+  1639→                        onClick={(e) => { e.stopPropagation(); setAudioFile(null); }}
+  1640→                      >
+  1641→                        <X className="h-3.5 w-3.5" />
+  1642→                      </Button>
+  1643→                    </div>
+  1644→                  ) : editingCampaign && campaigns.find(c => c.id === editingCampaign)?.audioFileName ? (
+  1645→                    <div className="flex items-center justify-center gap-2">
+  1646→                      <Volume2 className="h-5 w-5 text-gray-400" />
+  1647→                      <span className="text-sm text-gray-300">{campaigns.find(c => c.id === editingCampaign)?.audioFileName}</span>
+  1648→                      <span className="text-xs text-gray-500">(arraste um novo para substituir)</span>
+  1649→                    </div>
+  1650→                  ) : (
+  1651→                    <div>
+  1652→                      <Upload className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+  1653→                      <p className="text-sm text-gray-400">Arraste um arquivo de áudio aqui</p>
+  1654→                      <p className="text-xs text-gray-500 mt-1">ou clique para selecionar</p>
+  1655→                    </div>
+  1656→                  )}
+  1657→                </div>
+  1658→              </div>
+  1659→            )}
+  1660→
+  1661→            <div className="space-y-2">
+  1662→              <Label className="text-gray-300">URL de Destino</Label>
+  1663→              <Input
+  1664→                value={newCampaign.targetUrl}
+  1665→                onChange={(e) => setNewCampaign(prev => ({ ...prev, targetUrl: e.target.value }))}
+  1666→                placeholder="https://example.com"
+  1667→                className="bg-gray-800 border-gray-700 text-white"
+  1668→              />
+  1669→            </div>
+  1670→            <div className="grid grid-cols-2 gap-4">
+  1671→              <div className="space-y-2">
+  1672→                <Label className="text-gray-300">Duração (seg)</Label>
+  1673→                <Input
+  1674→                  value={newCampaign.duration}
+  1675→                  onChange={(e) => setNewCampaign(prev => ({ ...prev, duration: e.target.value }))}
+  1676→                  type="number"
+  1677→                  className="bg-gray-800 border-gray-700 text-white"
+  1678→                />
+  1679→              </div>
+  1680→              <div className="space-y-2">
+  1681→                <Label className="text-gray-300">Frequência (após N músicas)</Label>
+  1682→                <Input
+  1683→                  value={newCampaign.frequency}
+  1684→                  onChange={(e) => setNewCampaign(prev => ({ ...prev, frequency: e.target.value }))}
+  1685→                  type="number"
+  1686→                  className="bg-gray-800 border-gray-700 text-white"
+  1687→                />
+  1688→              </div>
+  1689→            </div>
+  1690→            <div className="space-y-2">
+  1691→              <Label className="text-gray-300">Orçamento (R$)</Label>
+  1692→              <Input
+  1693→                value={newCampaign.budget}
+  1694→                onChange={(e) => setNewCampaign(prev => ({ ...prev, budget: e.target.value }))}
+  1695→                type="number"
+  1696→                placeholder="5000"
+  1697→                className="bg-gray-800 border-gray-700 text-white"
+  1698→              />
+  1699→            </div>
+  1700→          </div>
+  1701→          <DialogFooter>
+  1702→            <Button variant="ghost" className="text-gray-400" onClick={() => { setCreateDialog(false); resetForm(); }}>Cancelar</Button>
+  1703→            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleCreateCampaign} disabled={!newCampaign.name || !newCampaign.budget}>
+  1704→              {editingCampaign ? 'Salvar Alterações' : 'Criar Campanha'}
+  1705→            </Button>
+  1706→          </DialogFooter>
+  1707→        </DialogContent>
+  1708→      </Dialog>
+  1709→    </div>
+  1710→  );
+  1711→}
+  1712→
+  1713→// ===== RELATÓRIOS VIEW =====
+  1714→
+  1715→function ReportsView() {
+  1716→  const [dateFrom, setDateFrom] = useState('2025-01-01');
+  1717→  const [dateTo, setDateTo] = useState('2025-06-30');
+  1718→
+  1719→  const reports = [
+  1720→    { title: 'Relatório de Receita', description: 'Receita detalhada por período, plano e método de pagamento', icon: DollarSign, color: 'emerald' },
+  1721→    { title: 'Relatório de Usuários', description: 'Crescimento, retenção, churn e atividade dos usuários', icon: Users, color: 'blue' },
+  1722→    { title: 'Relatório de Conteúdo', description: 'Músicas, podcasts e lives - aprovações, remoções e métricas', icon: Music, color: 'purple' },
+  1723→    { title: 'Relatório de Pagamentos', description: 'Transações, reembolsos, falhas e métodos de pagamento', icon: CreditCard, color: 'amber' },
+  1724→  ];
+  1725→
+  1726→  return (
+  1727→    <div className="space-y-6">
+  1728→      <div>
+  1729→        <h2 className="text-2xl font-bold text-white">Relatórios</h2>
+  1730→        <p className="text-sm text-gray-400 mt-1">Gerar relatórios detalhados da plataforma</p>
+  1731→      </div>
+  1732→
+  1733→      {/* Date Range */}
+  1734→      <Card className="bg-gray-900 border-white/5">
+  1735→        <CardContent className="p-5">
+  1736→          <div className="flex items-end gap-4 flex-wrap">
+  1737→            <div className="space-y-2">
+  1738→              <Label className="text-gray-300 text-xs">Data Início</Label>
+  1739→              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="bg-gray-800 border-gray-700 text-white w-44" />
+  1740→            </div>
+  1741→            <div className="space-y-2">
+  1742→              <Label className="text-gray-300 text-xs">Data Fim</Label>
+  1743→              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="bg-gray-800 border-gray-700 text-white w-44" />
+  1744→            </div>
+  1745→            <Button variant="ghost" className="text-gray-400 h-10">
+  1746→              <Calendar className="h-4 w-4 mr-2" /> Últimos 30 dias
+  1747→            </Button>
+  1748→          </div>
+  1749→        </CardContent>
+  1750→      </Card>
+  1751→
+  1752→      {/* Report Cards */}
+  1753→      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  1754→        {reports.map((report) => {
+  1755→          const Icon = report.icon;
+  1756→          return (
+  1757→            <Card key={report.title} className="bg-gray-900 border-white/5 hover:border-gray-700 transition-colors">
+  1758→              <CardContent className="p-6">
+  1759→                <div className="flex items-start gap-4">
+  1760→                  <div className={`h-12 w-12 rounded-lg flex items-center justify-center shrink-0 ${
+  1761→                    report.color === 'emerald' ? 'bg-emerald-500/15' : report.color === 'amber' ? 'bg-amber-500/15' : report.color === 'purple' ? 'bg-purple-500/15' : 'bg-blue-500/15'
+  1762→                  }`}>
+  1763→                    <Icon className={`h-6 w-6 ${
+  1764→                      report.color === 'emerald' ? 'text-emerald-400' : report.color === 'amber' ? 'text-amber-400' : report.color === 'purple' ? 'text-purple-400' : 'text-blue-400'
+  1765→                    }`} />
+  1766→                  </div>
+  1767→                  <div className="flex-1 min-w-0">
+  1768→                    <h3 className="text-base font-semibold text-white">{report.title}</h3>
+  1769→                    <p className="text-sm text-gray-400 mt-1">{report.description}</p>
+  1770→                    <div className="mt-4">
+  1771→                      <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white">
+  1772→                        <FileText className="h-4 w-4 mr-2" /> Gerar Relatório
+  1773→                      </Button>
+  1774→                    </div>
+  1775→                  </div>
+  1776→                </div>
+  1777→              </CardContent>
+  1778→            </Card>
+  1779→          );
+  1780→        })}
+  1781→      </div>
+  1782→    </div>
+  1783→  );
+  1784→}
+  1785→
+  1786→// ===== CONFIGURAÇÕES VIEW =====
+  1787→
+  1788→function SettingsView() {
+  1789→  // Tab 1: Planos & Preços
+  1790→  const [plans, setPlans] = useState(subscriptionPlans.map(p => ({
+  1791→    ...p,
+  1792→    trialDays: p.id === 'free' ? 0 : p.id === 'premium_estudante' ? 30 : 14,
+  1793→  })));
+  1794→  const [savedPlans, setSavedPlans] = useState(false);
+  1795→
+  1796→  const handlePlanPriceChange = (planId: string, newPrice: number) => {
+  1797→    setPlans(prev => prev.map(p => p.id === planId ? { ...p, price: newPrice } : p));
+  1798→  };
+  1799→
+  1800→  const handlePlanTrialChange = (planId: string, days: number) => {
+  1801→    setPlans(prev => prev.map(p => p.id === planId ? { ...p, trialDays: days } : p));
+  1802→  };
+  1803→
+  1804→  const handleRemoveFeature = (planId: string, featureIndex: number) => {
+  1805→    setPlans(prev => prev.map(p => p.id === planId ? { ...p, features: p.features.filter((_, i) => i !== featureIndex) } : p));
+  1806→  };
+  1807→
+  1808→  const handleAddFeature = (planId: string, feature: string) => {
+  1809→    if (!feature.trim()) return;
+  1810→    setPlans(prev => prev.map(p => p.id === planId ? { ...p, features: [...p.features, feature] } : p));
+  1811→  };
+  1812→
+  1813→  const [newFeatures, setNewFeatures] = useState<Record<string, string>>({});
+  1814→
+  1815→  const handleSavePlans = () => {
+  1816→    setSavedPlans(true);
+  1817→    setTimeout(() => setSavedPlans(false), 2000);
+  1818→  };
+  1819→
+  1820→  // Tab 2: Pagamentos (Asaas)
+  1821→  const [asaasApiKey, setAsaasApiKey] = useState('');
+  1822→  const [showApiKey, setShowApiKey] = useState(false);
+  1823→  const [asaasApiUrl, setAsaasApiUrl] = useState('https://sandbox.asaas.com/api/v3');
+  1824→  const [asaasSandbox, setAsaasSandbox] = useState(true);
+  1825→  const [pixEnabled, setPixEnabled] = useState(true);
+  1826→  const [creditCardEnabled, setCreditCardEnabled] = useState(true);
+  1827→  const [debitCardEnabled, setDebitCardEnabled] = useState(false);
+  1828→  const [autoRetry, setAutoRetry] = useState(true);
+  1829→  const [gracePeriod, setGracePeriod] = useState('3');
+  1830→  const [testingConnection, setTestingConnection] = useState(false);
+  1831→  const [connectionResult, setConnectionResult] = useState<'success' | 'error' | null>(null);
+  1832→
+  1833→  const handleTestConnection = () => {
+  1834→    setTestingConnection(true);
+  1835→    setConnectionResult(null);
+  1836→    setTimeout(() => {
+  1837→      setTestingConnection(false);
+  1838→      setConnectionResult('success');
+  1839→      setTimeout(() => setConnectionResult(null), 3000);
+  1840→    }, 1500);
+  1841→  };
+  1842→
+  1843→  // Tab 3: Geral
+  1844→  const [platformName, setPlatformName] = useState('SoundFlow');
+  1845→  const [platformUrl, setPlatformUrl] = useState('https://soundflow.com.br');
+  1846→  const [supportEmail, setSupportEmail] = useState('suporte@soundflow.com.br');
+  1847→  const [defaultPlan, setDefaultPlan] = useState('free');
+  1848→  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  1849→  const [registrationEnabled, setRegistrationEnabled] = useState(true);
+  1850→  const [maxFreePlays, setMaxFreePlays] = useState('50');
+  1851→  const [adFrequency, setAdFrequency] = useState('3');
+  1852→
+  1853→  // Tab 4: Notificações
+  1854→  const [emailNotifications, setEmailNotifications] = useState(true);
+  1855→  const [pushNotifications, setPushNotifications] = useState(true);
+  1856→  const [newUserNotification, setNewUserNotification] = useState(true);
+  1857→  const [paymentNotification, setPaymentNotification] = useState(true);
+  1858→  const [contentApprovalNotification, setContentApprovalNotification] = useState(true);
+  1859→
+  1860→  return (
+  1861→    <div className="space-y-6">
+  1862→      <div>
+  1863→        <h2 className="text-2xl font-bold text-white">Configurações</h2>
+  1864→        <p className="text-sm text-gray-400 mt-1">Configurar a plataforma SoundFlow</p>
+  1865→      </div>
+  1866→
+  1867→      <Tabs defaultValue="plans" className="space-y-4">
+  1868→        <TabsList className="bg-gray-900 border border-white/5">
+  1869→          <TabsTrigger value="plans" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400">Planos & Preços</TabsTrigger>
+  1870→          <TabsTrigger value="payments" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400">Pagamentos</TabsTrigger>
+  1871→          <TabsTrigger value="general" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400">Geral</TabsTrigger>
+  1872→          <TabsTrigger value="notifications" className="data-[state=active]:bg-emerald-500/15 data-[state=active]:text-emerald-400">Notificações</TabsTrigger>
+  1873→        </TabsList>
+  1874→
+  1875→        {/* Tab 1: Planos & Preços */}
+  1876→        <TabsContent value="plans" className="space-y-4">
+  1877→          {plans.map((plan) => (
+  1878→            <Card key={plan.id} className="bg-gray-900 border-white/5">
+  1879→              <CardHeader className="pb-3">
+  1880→                <div className="flex items-center justify-between">
+  1881→                  <div className="flex items-center gap-3">
+  1882→                    <CardTitle className="text-white">{plan.name}</CardTitle>
+  1883→                    {plan.popular && (
+  1884→                      <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs">Popular</Badge>
+  1885→                    )}
+  1886→                  </div>
+  1887→                </div>
+  1888→              </CardHeader>
+  1889→              <CardContent className="space-y-4">
+  1890→                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  1891→                  <div className="space-y-2">
+  1892→                    <Label className="text-gray-300 text-xs">Preço (R$)</Label>
+  1893→                    <Input
+  1894→                      type="number"
+  1895→                      step="0.01"
+  1896→                      value={plan.price}
+  1897→                      onChange={(e) => handlePlanPriceChange(plan.id, parseFloat(e.target.value) || 0)}
+  1898→                      className="bg-gray-800 border-gray-700 text-white"
+  1899→                    />
+  1900→                  </div>
+  1901→                  <div className="space-y-2">
+  1902→                    <Label className="text-gray-300 text-xs">Período</Label>
+  1903→                    <Input value={plan.period === 'monthly' ? 'Mensal' : 'Anual'} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
+  1904→                  </div>
+  1905→                  <div className="space-y-2">
+  1906→                    <Label className="text-gray-300 text-xs">Dias de Teste</Label>
+  1907→                    <Input
+  1908→                      type="number"
+  1909→                      value={plan.trialDays}
+  1910→                      onChange={(e) => handlePlanTrialChange(plan.id, parseInt(e.target.value) || 0)}
+  1911→                      className="bg-gray-800 border-gray-700 text-white"
+  1912→                    />
+  1913→                  </div>
+  1914→                </div>
+  1915→                <div className="space-y-2">
+  1916→                  <Label className="text-gray-300 text-xs">Funcionalidades</Label>
+  1917→                  <div className="space-y-1.5">
+  1918→                    {plan.features.map((feature, i) => (
+  1919→                      <div key={i} className="flex items-center gap-2 group">
+  1920→                        <Check className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+  1921→                        <span className="text-sm text-gray-300 flex-1">{feature}</span>
+  1922→                        <Button
+  1923→                          variant="ghost"
+  1924→                          size="icon"
+  1925→                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity"
+  1926→                          onClick={() => handleRemoveFeature(plan.id, i)}
+  1927→                        >
+  1928→                          <X className="h-3 w-3" />
+  1929→                        </Button>
+  1930→                      </div>
+  1931→                    ))}
+  1932→                  </div>
+  1933→                  <div className="flex items-center gap-2 mt-2">
+  1934→                    <Input
+  1935→                      placeholder="Nova funcionalidade..."
+  1936→                      value={newFeatures[plan.id] || ''}
+  1937→                      onChange={(e) => setNewFeatures(prev => ({ ...prev, [plan.id]: e.target.value }))}
+  1938→                      className="bg-gray-800 border-gray-700 text-white h-8 text-sm"
+  1939→                      onKeyDown={(e) => {
+  1940→                        if (e.key === 'Enter') {
+  1941→                          handleAddFeature(plan.id, newFeatures[plan.id] || '');
+  1942→                          setNewFeatures(prev => ({ ...prev, [plan.id]: '' }));
+  1943→                        }
+  1944→                      }}
+  1945→                    />
+  1946→                    <Button
+  1947→                      size="sm"
+  1948→                      variant="ghost"
+  1949→                      className="h-8 text-emerald-400 hover:text-emerald-300 shrink-0"
+  1950→                      onClick={() => {
+  1951→                        handleAddFeature(plan.id, newFeatures[plan.id] || '');
+  1952→                        setNewFeatures(prev => ({ ...prev, [plan.id]: '' }));
+  1953→                      }}
+  1954→                    >
+  1955→                      <Plus className="h-4 w-4" />
+  1956→                    </Button>
+  1957→                  </div>
+  1958→                </div>
+  1959→              </CardContent>
+  1960→            </Card>
+  1961→          ))}
+  1962→          <div className="flex justify-end">
+  1963→            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={handleSavePlans}>
+  1964→              {savedPlans ? <><Check className="h-4 w-4 mr-2" /> Salvo!</> : <><Save className="h-4 w-4 mr-2" /> Salvar Alterações</>}
+  1965→            </Button>
+  1966→          </div>
+  1967→        </TabsContent>
+  1968→
+  1969→        {/* Tab 2: Pagamentos (Asaas) */}
+  1970→        <TabsContent value="payments" className="space-y-4">
+  1971→          <Card className="bg-gray-900 border-white/5">
+  1972→            <CardHeader>
+  1973→              <CardTitle className="text-white flex items-center gap-2">
+  1974→                <Key className="h-5 w-5 text-amber-400" /> Configuração Asaas
+  1975→              </CardTitle>
+  1976→              <CardDescription className="text-gray-400">Integração com gateway de pagamento Asaas</CardDescription>
+  1977→            </CardHeader>
+  1978→            <CardContent className="space-y-5">
+  1979→              <div className="space-y-2">
+  1980→                <Label className="text-gray-300">API Key</Label>
+  1981→                <div className="flex items-center gap-2">
+  1982→                  <div className="relative flex-1">
+  1983→                    <Input
+  1984→                      type={showApiKey ? 'text' : 'password'}
+  1985→                      value={asaasApiKey}
+  1986→                      onChange={(e) => setAsaasApiKey(e.target.value)}
+  1987→                      placeholder="$aas_prod_xxxxxxxx ou $aas_sandbox_xxxxxxxx"
+  1988→                      className="bg-gray-800 border-gray-700 text-white pr-10"
+  1989→                    />
+  1990→                    <Button
+  1991→                      variant="ghost"
+  1992→                      size="icon"
+  1993→                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-gray-400 hover:text-white"
+  1994→                      onClick={() => setShowApiKey(!showApiKey)}
+  1995→                    >
+  1996→                      {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+  1997→                    </Button>
+  1998→                  </div>
+  1999→                </div>
+  2000→              </div>
+
+[showing lines 1-2000 of 2345; use offset=2001 with limit to continue reading]

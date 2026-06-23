@@ -328,7 +328,7 @@ export const adminAnalytics = {
   totalRevenue: 856234.50,
   monthlyGrowth: 12.5,
   conversionRate: 27.7,
-  topSongs: mockSongs.slice(0, 5).map((s, i) => ({ ...s, playCount: 500000 - i * 80000 + Math.floor(Math.random() * 100000) })),
+  topSongs: mockSongs.slice(0, 5).map((s, i) => ({ ...s, playCount: 597000 - i * 85000 })),
   revenueByMonth: [
     { month: 'Jan', revenue: 620000 },
     { month: 'Fev', revenue: 680000 },
