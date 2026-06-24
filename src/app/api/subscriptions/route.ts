@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import {
-  createAsaasCustomer,
+  getOrCreateCustomer,
   createAsaasSubscription,
   cancelAsaasSubscription,
+  getSubscriptionPixQrCode,
+  getAsaasSubscription,
 } from '@/lib/asaas';
 
-// Plan pricing map
+// Plan pricing map — matches subscriptionPlans in mock-data
 const PLAN_PRICES: Record<string, { value: number; cycle: 'MONTHLY' | 'YEARLY'; description: string }> = {
   premium_individual: { value: 21.90, cycle: 'MONTHLY', description: 'SoundFlow Premium Individual' },
   premium_duo: { value: 29.90, cycle: 'MONTHLY', description: 'SoundFlow Premium Duo' },
@@ -44,6 +46,32 @@ export async function GET(request: Request) {
       );
     }
 
+    // If subscription has Asaas ID, try to get the latest status
+    if (subscription.asaasId) {
+      try {
+        const asaasSub = await getAsaasSubscription(subscription.asaasId);
+        const asaasStatus = asaasSub.status; // ACTIVE, INACTIVE, EXPIRED, DELETED
+
+        const statusMap: Record<string, string> = {
+          ACTIVE: 'active',
+          INACTIVE: 'canceled',
+          EXPIRED: 'expired',
+          DELETED: 'canceled',
+        };
+
+        const newStatus = statusMap[asaasStatus] || subscription.status;
+        if (newStatus !== subscription.status) {
+          await db.subscription.update({
+            where: { id: subscription.id },
+            data: { status: newStatus },
+          });
+          subscription.status = newStatus;
+        }
+      } catch {
+        // Ignore Asaas errors, return local data
+      }
+    }
+
     return NextResponse.json({ subscription });
   } catch (error) {
     console.error('[SUBSCRIPTIONS_GET]', error);
@@ -54,16 +82,42 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/subscriptions - Create subscription (integrate with Asaas)
+// POST /api/subscriptions - Create subscription with Asaas
+// Supports PIX and CREDIT_CARD with recurring billing on the same day each month
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, plan, billingType, cpfCnpj, phone } = body;
+    const {
+      userId,
+      plan,
+      billingType, // 'PIX' | 'CREDIT_CARD'
+      cpfCnpj,
+      phone,
+      postalCode,
+      addressNumber,
+      // Credit card fields (sent directly to Asaas — never stored in our DB)
+      creditCardNumber,
+      creditCardHolderName,
+      creditCardExpiryMonth,
+      creditCardExpiryYear,
+      creditCardCvv,
+      creditCardHolderCpfCnpj,
+      creditCardHolderPostalCode,
+      creditCardHolderAddressNumber,
+      creditCardHolderPhone,
+    } = body;
 
     // Validate required fields
     if (!userId || !plan) {
       return NextResponse.json(
         { error: 'userId and plan are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!cpfCnpj) {
+      return NextResponse.json(
+        { error: 'CPF/CNPJ é obrigatório' },
         { status: 400 }
       );
     }
@@ -78,8 +132,19 @@ export async function POST(request: Request) {
     }
 
     // Validate billing type
-    const validBillingTypes = ['PIX', 'CREDIT_CARD', 'BOLETO'];
-    const billing = billingType && validBillingTypes.includes(billingType) ? billingType : 'PIX';
+    const validBillingTypes = ['PIX', 'CREDIT_CARD'];
+    const billing = validBillingTypes.includes(billingType) ? billingType : 'PIX';
+
+    // If credit card, validate card fields
+    if (billing === 'CREDIT_CARD') {
+      if (!creditCardNumber || !creditCardHolderName || !creditCardExpiryMonth ||
+          !creditCardExpiryYear || !creditCardCvv || !creditCardHolderCpfCnpj) {
+        return NextResponse.json(
+          { error: 'Todos os dados do cartão são obrigatórios' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Get user
     const user = await db.user.findUnique({
@@ -105,74 +170,151 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calculate next due date (30 days from now)
-    const nextDueDate = new Date();
-    nextDueDate.setDate(nextDueDate.getDate() + 30);
+    // === ASAAS SUBSCRIPTION CREATION ===
+    // nextDueDate = today → Asaas charges today and recurs on this day each month
+    // Example: subscribe on March 2 → next charges on April 2, May 2, etc.
+    const nextDueDate = new Date().toISOString().split('T')[0];
 
     let asaasSubscriptionId: string | null = null;
+    let pixCode: string | null = null;
+    let pixQrCode: string | null = null;
+    let firstPaymentId: string | null = null;
 
-    // Try to create Asaas subscription
     try {
-      // Create or get Asaas customer
-      const customer = await createAsaasCustomer({
+      // Get or create Asaas customer
+      const customerId = await getOrCreateCustomer({
         name: user.name || user.email,
         email: user.email,
-        cpfCnpj: cpfCnpj || '00000000000',
+        cpfCnpj: cpfCnpj.replace(/\D/g, ''),
         phone: phone || undefined,
+        postalCode: postalCode || undefined,
+        addressNumber: addressNumber || undefined,
       });
 
-      // Create Asaas subscription
-      const asaasSub = await createAsaasSubscription({
-        customer: customer.id,
-        billingType: billing as 'PIX' | 'CREDIT_CARD' | 'BOLETO',
+      // Build subscription data
+      const subscriptionData: Record<string, unknown> = {
+        customer: customerId,
+        billingType: billing,
         value: planPrice.value,
         description: planPrice.description,
         cycle: planPrice.cycle,
-        nextDueDate: nextDueDate.toISOString().split('T')[0],
-      });
+        nextDueDate, // Key: this sets the recurring day
+      };
 
+      // Add credit card fields if paying with card
+      // Asaas stores the card for automatic recurring charges
+      if (billing === 'CREDIT_CARD') {
+        subscriptionData.creditCardNumber = creditCardNumber.replace(/\s/g, '');
+        subscriptionData.creditCardHolderName = creditCardHolderName;
+        subscriptionData.creditCardExpiryMonth = creditCardExpiryMonth;
+        subscriptionData.creditCardExpiryYear = creditCardExpiryYear;
+        subscriptionData.creditCardCvv = creditCardCvv;
+        subscriptionData.creditCardHolderCpfCnpj = creditCardHolderCpfCnpj.replace(/\D/g, '');
+        subscriptionData.creditCardHolderPostalCode = creditCardHolderPostalCode || postalCode;
+        subscriptionData.creditCardHolderAddressNumber = creditCardHolderAddressNumber || addressNumber;
+        subscriptionData.creditCardHolderPhone = creditCardHolderPhone || phone;
+      }
+
+      // Create the subscription on Asaas
+      const asaasSub = await createAsaasSubscription(subscriptionData as any);
       asaasSubscriptionId = asaasSub.id;
-    } catch (asaasError) {
-      console.warn('[ASAAS_SUBSCRIPTION] Asaas integration failed, creating local subscription:', asaasError);
-      // Continue without Asaas - create local subscription only
+      firstPaymentId = asaasSub.id; // Asaas returns the first payment in the subscription
+
+      // If PIX, get the QR code for the first payment
+      if (billing === 'PIX' && asaasSubscriptionId) {
+        try {
+          const pixData = await getSubscriptionPixQrCode(asaasSubscriptionId);
+          pixCode = pixData.payload || null;
+          pixQrCode = pixData.encodedImage || null;
+        } catch (pixError) {
+          console.warn('[ASAAS_SUB_PIX] Failed to get PIX data:', pixError);
+        }
+      }
+
+      console.log(`[ASAAS_SUB] Created subscription ${asaasSubscriptionId} for user ${userId}, billing: ${billing}, nextDueDate: ${nextDueDate}`);
+    } catch (asaasError: any) {
+      console.warn('[ASAAS_SUBSCRIPTION] Asaas integration failed:', asaasError?.message);
+      // Continue without Asaas — create local subscription only
     }
+
+    // Calculate end date (30 days from now for monthly)
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 30);
 
     // Create or update subscription in database
     const subscription = await db.subscription.upsert({
       where: { userId },
       update: {
         plan,
-        status: 'active',
+        status: billing === 'CREDIT_CARD' ? 'active' : 'pending', // Credit card is instant, PIX needs confirmation
         startDate: new Date(),
-        endDate: nextDueDate,
+        endDate,
         autoRenew: true,
         asaasId: asaasSubscriptionId,
       },
       create: {
         userId,
         plan,
-        status: 'active',
+        status: billing === 'CREDIT_CARD' ? 'active' : 'pending',
         startDate: new Date(),
-        endDate: nextDueDate,
+        endDate,
         trialEndDate: null,
         autoRenew: true,
         asaasId: asaasSubscriptionId,
       },
     });
 
-    // Update user plan and role
-    await db.user.update({
-      where: { id: userId },
+    // For credit card, activate premium immediately
+    if (billing === 'CREDIT_CARD') {
+      await db.user.update({
+        where: { id: userId },
+        data: {
+          plan,
+          role: 'premium',
+        },
+      });
+    }
+
+    // Create initial payment record
+    const cardLast4 = billing === 'CREDIT_CARD' && creditCardNumber
+      ? creditCardNumber.replace(/\s/g, '').slice(-4)
+      : null;
+
+    await db.payment.create({
       data: {
-        plan,
-        role: 'premium',
+        userId,
+        subscriptionId: subscription.id,
+        amount: planPrice.value,
+        currency: 'BRL',
+        method: billing === 'PIX' ? 'pix' : 'credit_card',
+        status: billing === 'CREDIT_CARD' ? 'confirmed' : 'pending',
+        asaasId: firstPaymentId,
+        pixCode,
+        pixQrCode,
+        cardInfo: cardLast4 ? `****${cardLast4}` : null,
+        dueDate: new Date(),
+        paidAt: billing === 'CREDIT_CARD' ? new Date() : undefined,
       },
     });
 
     return NextResponse.json(
       {
-        message: 'Subscription created successfully',
-        subscription,
+        message: billing === 'CREDIT_CARD'
+          ? 'Subscription created successfully! Your card will be charged monthly on this same day.'
+          : 'Subscription created! Pay the PIX to activate your Premium.',
+        subscription: {
+          id: subscription.id,
+          plan: subscription.plan,
+          status: subscription.status,
+          startDate: subscription.startDate,
+          endDate: subscription.endDate,
+          autoRenew: subscription.autoRenew,
+          asaasId: subscription.asaasId,
+          billingType: billing,
+          nextBillingDay: new Date().getDate(), // The day of month for recurring charges
+        },
+        pix: billing === 'PIX' ? { pixCode, pixQrCode } : undefined,
+        card: billing === 'CREDIT_CARD' ? { last4: cardLast4 } : undefined,
       },
       { status: 201 }
     );
@@ -216,12 +358,13 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Try to cancel on Asaas
+    // Cancel on Asaas
     if (subscription.asaasId) {
       try {
         await cancelAsaasSubscription(subscription.asaasId);
+        console.log(`[ASAAS_CANCEL] Canceled subscription ${subscription.asaasId} for user ${userId}`);
       } catch (asaasError) {
-        console.warn('[ASAAS_CANCEL] Asaas cancellation failed, updating local subscription:', asaasError);
+        console.warn('[ASAAS_CANCEL] Asaas cancellation failed:', asaasError);
       }
     }
 
@@ -231,6 +374,7 @@ export async function DELETE(request: Request) {
       data: {
         status: 'canceled',
         autoRenew: false,
+        endDate: new Date(), // Ends now
       },
     });
 
@@ -244,7 +388,7 @@ export async function DELETE(request: Request) {
     });
 
     return NextResponse.json({
-      message: 'Subscription canceled successfully',
+      message: 'Assinatura cancelada com sucesso. Você manterá o Premium até o fim do período pago.',
       subscription: updatedSubscription,
     });
   } catch (error) {
