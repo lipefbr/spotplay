@@ -14,7 +14,10 @@ export const metadata: Metadata = {
   keywords: ["SoundFlow", "streaming", "música", "podcasts", "lives", "Premium", "BR"],
   authors: [{ name: "SoundFlow" }],
   icons: {
-    icon: "/logo.svg",
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-touch-icon.svg',
   },
   openGraph: {
     title: "SoundFlow - Sua música, sem limites",
