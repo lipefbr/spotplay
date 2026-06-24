@@ -88,6 +88,8 @@ interface PlayerStoreState {
   isMuted: boolean;
   showFullPlayer: boolean;
   playerMinimized: boolean;
+  songsPlayedSinceAd: number;
+  isAdPlaying: boolean;
 
   setCurrentSong: (song: SongType) => void;
   setQueue: (songs: SongType[], startIndex?: number) => void;
@@ -104,6 +106,9 @@ interface PlayerStoreState {
   setShowFullPlayer: (val: boolean) => void;
   togglePlayerMinimized: () => void;
   clearPlayer: () => void;
+  incrementSongsPlayed: () => void;
+  setIsAdPlaying: (val: boolean) => void;
+  resetAdCounter: () => void;
 }
 
 export const usePlayerStore = create<PlayerStoreState>()(
@@ -121,6 +126,8 @@ export const usePlayerStore = create<PlayerStoreState>()(
       isMuted: false,
       showFullPlayer: false,
       playerMinimized: false,
+      songsPlayedSinceAd: 0,
+      isAdPlaying: false,
 
       setCurrentSong: (song) => set({ currentSong: song }),
       setQueue: (songs, startIndex = 0) => set({
@@ -185,7 +192,12 @@ export const usePlayerStore = create<PlayerStoreState>()(
         duration: 0,
         showFullPlayer: false,
         playerMinimized: false,
+        songsPlayedSinceAd: 0,
+        isAdPlaying: false,
       }),
+      incrementSongsPlayed: () => set((s) => ({ songsPlayedSinceAd: s.songsPlayedSinceAd + 1 })),
+      setIsAdPlaying: (val) => set({ isAdPlaying: val }),
+      resetAdCounter: () => set({ songsPlayedSinceAd: 0 }),
     }),
     {
       name: 'soundflow-player',
@@ -202,6 +214,7 @@ export const usePlayerStore = create<PlayerStoreState>()(
         repeat: state.repeat,
         isMuted: state.isMuted,
         playerMinimized: state.playerMinimized,
+        songsPlayedSinceAd: state.songsPlayedSinceAd,
       }),
       // On rehydrate, always start paused with progress reset
       onRehydrateStorage: () => (state) => {

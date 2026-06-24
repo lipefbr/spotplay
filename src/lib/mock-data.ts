@@ -206,6 +206,11 @@ export const mockPodcasts: PodcastType[] = [
     description: 'Entrevistas e bastidores da música brasileira',
     coverUrl: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=300&h=300&fit=crop',
     category: 'Música', isExclusive: false,
+    episodes: [
+      { id: 'ep1', podcastId: 'pod1', title: 'A Origem do MPB Moderno', description: 'Como o MPB se reinventou nos anos 2000', audioUrl: '/audio/podcast-ep1.mp3', duration: 2340, playCount: 45200, season: 1, episode: 1, isExclusive: false, releaseDate: '2025-06-15' },
+      { id: 'ep2', podcastId: 'pod1', title: 'Backstage no Rock in Rio', description: 'O que rola nos bastidores do maior festival', audioUrl: '/audio/podcast-ep2.mp3', duration: 3120, playCount: 38700, season: 1, episode: 2, isExclusive: false, releaseDate: '2025-06-22' },
+      { id: 'ep3', podcastId: 'pod1', title: 'Produtores que Mudaram o Jogo', description: 'Entrevista com grandes produtores musicais', audioUrl: '/audio/podcast-ep3.mp3', duration: 2760, playCount: 29100, season: 1, episode: 3, isExclusive: false, releaseDate: '2025-06-29' },
+    ],
   },
   {
     id: 'pod2', artistId: 'a5', artistName: 'Pedro Almeida',
@@ -213,6 +218,10 @@ export const mockPodcasts: PodcastType[] = [
     description: 'Análise semanal do mundo pop',
     coverUrl: 'https://images.unsplash.com/photo-1505739998589-00fc191ce01d?w=300&h=300&fit=crop',
     category: 'Entretenimento', isExclusive: true,
+    episodes: [
+      { id: 'ep4', podcastId: 'pod2', title: 'O Fenômeno K-Pop no Brasil', description: 'Como o K-Pop conquistou o Brasil', audioUrl: '/audio/podcast-ep4.mp3', duration: 1980, playCount: 62300, season: 1, episode: 1, isExclusive: true, releaseDate: '2025-06-10' },
+      { id: 'ep5', podcastId: 'pod2', title: 'Taylor Swift e a Indústria', description: 'O impacto de Taylor Swift na música', audioUrl: '/audio/podcast-ep5.mp3', duration: 2540, playCount: 55800, season: 1, episode: 2, isExclusive: true, releaseDate: '2025-06-17' },
+    ],
   },
   {
     id: 'pod3', artistId: 'a8', artistName: 'Isabela Ferreira',
@@ -220,6 +229,32 @@ export const mockPodcasts: PodcastType[] = [
     description: 'Histórias do movimento funk carioca',
     coverUrl: 'https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=300&h=300&fit=crop',
     category: 'Cultura', isExclusive: true,
+    episodes: [
+      { id: 'ep6', podcastId: 'pod3', title: 'Das Favelas pro Mundo', description: 'A jornada do funk brasileiro', audioUrl: '/audio/podcast-ep6.mp3', duration: 2880, playCount: 71400, season: 1, episode: 1, isExclusive: true, releaseDate: '2025-06-12' },
+      { id: 'ep7', podcastId: 'pod3', title: 'MCs que Fizeram História', description: 'Os grandes nomes do funk nacional', audioUrl: '/audio/podcast-ep7.mp3', duration: 2220, playCount: 48900, season: 1, episode: 2, isExclusive: true, releaseDate: '2025-06-19' },
+    ],
+  },
+  {
+    id: 'pod4', artistId: 'a2', artistName: 'Marina Silva',
+    title: 'Sons do Brasil',
+    description: 'Explorando os ritmos brasileiros',
+    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&h=300&fit=crop',
+    category: 'Cultura', isExclusive: false,
+    episodes: [
+      { id: 'ep8', podcastId: 'pod4', title: 'Samba: A Raiz de Tudo', description: 'A história do samba e sua influência', audioUrl: '/audio/podcast-ep8.mp3', duration: 2640, playCount: 33500, season: 1, episode: 1, isExclusive: false, releaseDate: '2025-06-08' },
+      { id: 'ep9', podcastId: 'pod4', title: 'Bossa Nova Eterna', description: 'O charme da bossa nova', audioUrl: '/audio/podcast-ep9.mp3', duration: 1800, playCount: 27200, season: 1, episode: 2, isExclusive: false, releaseDate: '2025-06-20' },
+    ],
+  },
+  {
+    id: 'pod5', artistId: 'a3', artistName: 'DJ Thunder',
+    title: 'Bateu a Hora',
+    description: 'Podcast ao vivo sobre música eletrônica e festas',
+    coverUrl: 'https://images.unsplash.com/photo-1571330735066-03aaa9429d89?w=300&h=300&fit=crop',
+    category: 'Eletrônica', isExclusive: false,
+    episodes: [
+      { id: 'ep10', podcastId: 'pod5', title: 'AO VIVO - Neon Party Special', description: 'Set ao vivo do DJ Thunder direto da Neon Party', audioUrl: '/audio/podcast-ep10.mp3', duration: 3600, playCount: 89200, season: 1, episode: 1, isExclusive: false, releaseDate: '2025-06-23' },
+      { id: 'ep11', podcastId: 'pod5', title: 'Como Produzir um Hit', description: 'Dicas de produção musical eletrônica', audioUrl: '/audio/podcast-ep11.mp3', duration: 2100, playCount: 41600, season: 1, episode: 2, isExclusive: false, releaseDate: '2025-06-25' },
+    ],
   },
 ];
 

@@ -1,19 +1,22 @@
 'use client';
 
-import { useMemo, useEffect, useCallback } from 'react';
+import { useMemo, useEffect, useCallback, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
   Volume2, VolumeX, Heart, Music2, Maximize2, ChevronDown,
-  Mic2, ListMusic, ChevronUp, X, Plus, Radio,
+  Mic2, ListMusic, ChevronUp, X, Plus, Radio, Megaphone, Headphones,
+  Upload, Clock, Calendar, Bell, Crown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useAppStore, usePlayerStore } from '@/stores/app-store';
 import { formatDuration, formatPlayCount } from '@/lib/asaas';
 import { mockLiveStreams, mockPodcasts, mockPlaylists, mockSongs } from '@/lib/mock-data';
-import type { UserType } from '@/types';
+import type { UserType, PodcastEpisodeType } from '@/types';
 
 import LandingPage from '@/components/landing/LandingPage';
 import AuthModal from '@/components/landing/AuthModal';
@@ -244,31 +247,122 @@ function FullPlayer() {
   );
 }
 
+// ===== AD OVERLAY (free users - every 2 songs) =====
+const AD_MESSAGES = [
+  '🎧 SoundFlow Premium — Sem anúncios, sem interrupções!',
+  '🎶 Curta música sem limites — Assine o Premium!',
+  '⚡ Download offline + qualidade máxima — SoundFlow Premium',
+  '🎵 Pule quantas músicas quiser — Upgrade Premium!',
+];
+const AD_DURATION = 15; // seconds
+
+function AdOverlay() {
+  const { isAdPlaying, setIsAdPlaying, resetAdCounter } = usePlayerStore();
+  const [countdown, setCountdown] = useState(AD_DURATION);
+  const adMsg = AD_MESSAGES[0]; // Deterministic for SSR
+
+  useEffect(() => {
+    if (!isAdPlaying || countdown <= 0) return;
+    const timer = setTimeout(() => {
+      setCountdown((prev) => {
+        const next = prev - 1;
+        if (next <= 0) {
+          setIsAdPlaying(false);
+          resetAdCounter();
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [isAdPlaying, countdown, setIsAdPlaying, resetAdCounter]);
+
+  if (!isAdPlaying) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="fixed inset-0 z-[80] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <div className="max-w-md w-full bg-gray-900 rounded-2xl p-8 text-center border border-white/10">
+        <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20 mb-4">
+          <Megaphone className="h-8 w-8 text-amber-400" />
+        </div>
+        <h3 className="text-lg font-bold text-white mb-2">Anúncio</h3>
+        <p className="text-sm text-gray-300 mb-6">{adMsg}</p>
+        <div className="relative w-full h-2 bg-gray-800 rounded-full mb-4 overflow-hidden">
+          <div
+            className="h-full bg-amber-500 transition-all duration-1000 ease-linear rounded-full"
+            style={{ width: `${((AD_DURATION - countdown) / AD_DURATION) * 100}%` }}
+          />
+        </div>
+        <p className="text-xs text-gray-400 mb-4">
+          Seu conteúdo continua em {countdown}s
+        </p>
+        <Button
+          className="rounded-full bg-emerald-500 text-white hover:bg-emerald-600 text-sm"
+          onClick={() => {
+            setView('premium');
+            setIsAdPlaying(false);
+            resetAdCounter();
+          }}
+        >
+          <Crown className="h-4 w-4 mr-1" /> Remover Anúncios — Premium
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
 // ===== LIVES VIEW =====
 function LivesView() {
-  const { setQueue } = usePlayerStore();
+  const { setQueue, setCurrentSong, setIsPlaying } = usePlayerStore();
+  const { user, setView } = useAppStore();
 
-  const handleLiveClick = () => {
-    setQueue(mockSongs, 0);
+  const handleLiveClick = (stream: typeof mockLiveStreams[0]) => {
+    // Play a mock live audio — in production this would be the stream URL
+    const liveSong: SongType = {
+      id: `live-${stream.id}`,
+      title: `🔴 AO VIVO — ${stream.title}`,
+      artistId: stream.artistId,
+      artistName: stream.artistName,
+      duration: 0, // 0 = live/infinite
+      audioUrl: stream.streamUrl || '/audio/live-stream.mp3',
+      coverUrl: stream.thumbnail,
+      playCount: stream.viewerCount,
+      likeCount: 0,
+      isExplicit: false,
+      status: 'approved',
+      genre: 'Live',
+    };
+    setCurrentSong(liveSong);
+    setIsPlaying(true);
   };
 
   return (
     <div className="px-4 pt-2 pb-8 lg:px-6">
-      <h1 className="text-2xl font-bold text-white mb-6">Lives Agora</h1>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {mockLiveStreams.map((stream) => (
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-white">Lives Agora</h1>
+        <Badge className="bg-red-500/20 text-red-400 border-red-500/30 animate-pulse">
+          <span className="h-2 w-2 rounded-full bg-red-500 mr-1.5" />
+          {mockLiveStreams.filter(s => s.isLive).length} ao vivo
+        </Badge>
+      </div>
+
+      {/* Live Now */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+        {mockLiveStreams.filter(s => s.isLive).map((stream) => (
           <motion.div key={stream.id} whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
             <div
               className="group cursor-pointer overflow-hidden rounded-xl bg-gray-800/50 transition-colors hover:bg-gray-700/50"
-              onClick={handleLiveClick}
+              onClick={() => handleLiveClick(stream)}
             >
               <div className="relative aspect-video">
                 <img src={stream.thumbnail} alt={stream.title} className="h-full w-full object-cover" />
-                {stream.isLive && (
-                  <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                    <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> AO VIVO
-                  </span>
-                )}
+                <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> AO VIVO
+                </span>
                 <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
                   {formatPlayCount(stream.viewerCount)} assistindo
                 </div>
@@ -277,7 +371,7 @@ function LivesView() {
                   <Button
                     size="lg"
                     className="rounded-full bg-emerald-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 h-14 w-14"
-                    onClick={(e) => { e.stopPropagation(); handleLiveClick(); }}
+                    onClick={(e) => { e.stopPropagation(); handleLiveClick(stream); }}
                   >
                     <Play className="h-6 w-6 ml-0.5" fill="white" />
                   </Button>
@@ -289,7 +383,7 @@ function LivesView() {
                 <Button
                   size="sm"
                   className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs gap-1.5"
-                  onClick={(e) => { e.stopPropagation(); handleLiveClick(); }}
+                  onClick={(e) => { e.stopPropagation(); handleLiveClick(stream); }}
                 >
                   <Radio className="h-3.5 w-3.5" />
                   Ouvir Ao Vivo
@@ -299,26 +393,266 @@ function LivesView() {
           </motion.div>
         ))}
       </div>
+
+      {/* Scheduled Lives */}
+      {mockLiveStreams.filter(s => s.isScheduled).length > 0 && (
+        <>
+          <h2 className="text-xl font-bold text-white mb-4">Próximas Lives</h2>
+          <div className="space-y-3">
+            {mockLiveStreams.filter(s => s.isScheduled).map((stream) => (
+              <div key={stream.id} className="flex items-center gap-4 rounded-xl bg-gray-800/50 p-4 hover:bg-gray-700/50 transition-colors">
+                <img src={stream.thumbnail} alt={stream.title} className="h-20 w-32 rounded-lg object-cover" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-white truncate">{stream.title}</p>
+                  <p className="text-sm text-gray-400">{stream.artistName}</p>
+                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>{stream.scheduledAt ? new Date(stream.scheduledAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Data a definir'}</span>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="shrink-0 border-gray-700 text-gray-300 hover:text-white hover:border-emerald-500">
+                  <Bell className="h-4 w-4 mr-1" /> Lembrar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // ===== PODCASTS VIEW =====
 function PodcastsView() {
+  const { setQueue, setCurrentSong, setIsPlaying } = usePlayerStore();
+  const { user, setView } = useAppStore();
+  const [selectedPodcast, setSelectedPodcast] = useState<string | null>(null);
+  const [uploadDialog, setUploadDialog] = useState(false);
+
+  const playEpisode = (episode: PodcastEpisodeType, podcast: typeof mockPodcasts[0]) => {
+    const episodeSong: SongType = {
+      id: `pod-${episode.id}`,
+      title: episode.title,
+      artistId: podcast.artistId,
+      artistName: `${podcast.title} • ${podcast.artistName}`,
+      duration: episode.duration,
+      audioUrl: episode.audioUrl,
+      coverUrl: podcast.coverUrl,
+      playCount: episode.playCount,
+      likeCount: 0,
+      isExplicit: false,
+      status: 'approved',
+      genre: 'Podcast',
+    };
+    setCurrentSong(episodeSong);
+    setIsPlaying(true);
+  };
+
+  const playAllEpisodes = (podcast: typeof mockPodcasts[0]) => {
+    if (!podcast.episodes || podcast.episodes.length === 0) return;
+    const songs: SongType[] = podcast.episodes.map((ep) => ({
+      id: `pod-${ep.id}`,
+      title: ep.title,
+      artistId: podcast.artistId,
+      artistName: `${podcast.title} • ${podcast.artistName}`,
+      duration: ep.duration,
+      audioUrl: ep.audioUrl,
+      coverUrl: podcast.coverUrl,
+      playCount: ep.playCount,
+      likeCount: 0,
+      isExplicit: false,
+      status: 'approved',
+      genre: 'Podcast',
+    }));
+    setQueue(songs, 0);
+  };
+
+  const selected = mockPodcasts.find(p => p.id === selectedPodcast);
+
   return (
     <div className="px-4 pt-2 pb-8 lg:px-6">
-      <h1 className="text-2xl font-bold text-white mb-6">Podcasts</h1>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {mockPodcasts.map((podcast) => (
-          <div key={podcast.id} className="group cursor-pointer">
-            <div className="aspect-square overflow-hidden rounded-lg mb-2">
-              <img src={podcast.coverUrl} alt={podcast.title} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-            </div>
-            <p className="text-sm font-semibold text-white truncate">{podcast.title}</p>
-            <p className="text-xs text-gray-400 truncate">{podcast.artistName}</p>
-          </div>
-        ))}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-white">Podcasts</h1>
+        {(user?.role === 'creator' || user?.role === 'admin') && (
+          <Button
+            className="bg-emerald-500 text-white hover:bg-emerald-600 gap-1.5"
+            onClick={() => setUploadDialog(true)}
+          >
+            <Upload className="h-4 w-4" /> Upload Episódio
+          </Button>
+        )}
       </div>
+
+      {/* Live Podcasts Banner */}
+      {mockPodcasts.some(p => p.episodes?.some(ep => ep.title.includes('AO VIVO'))) && (
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <Radio className="h-5 w-5 text-red-400" />
+            Podcasts Ao Vivo
+          </h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {mockPodcasts.filter(p => p.episodes?.some(ep => ep.title.includes('AO VIVO'))).map((podcast) => {
+              const liveEp = podcast.episodes?.find(ep => ep.title.includes('AO VIVO'));
+              if (!liveEp) return null;
+              return (
+                <motion.div key={podcast.id} whileHover={{ scale: 1.02 }}>
+                  <div
+                    className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-gray-800/50 border border-red-500/20 cursor-pointer hover:border-red-500/40 transition-colors"
+                    onClick={() => playEpisode(liveEp, podcast)}
+                  >
+                    <div className="relative shrink-0">
+                      <img src={podcast.coverUrl} alt={podcast.title} className="h-16 w-16 rounded-lg object-cover" />
+                      <span className="absolute -top-1 -right-1 flex items-center gap-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[8px] font-bold text-white">
+                        <span className="h-1 w-1 rounded-full bg-white animate-pulse" /> LIVE
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white truncate">{liveEp.title}</p>
+                      <p className="text-xs text-gray-400 truncate">{podcast.artistName}</p>
+                      <p className="text-xs text-red-400 mt-1">🔴 Ao vivo agora</p>
+                    </div>
+                    <Button size="sm" className="shrink-0 rounded-full bg-red-600 text-white hover:bg-red-700 h-9 w-9 p-0">
+                      <Play className="h-4 w-4 ml-0.5" fill="white" />
+                    </Button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Selected Podcast Detail */}
+      {selected && selected.episodes ? (
+        <div className="mb-8">
+          <button
+            onClick={() => setSelectedPodcast(null)}
+            className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-4 transition-colors"
+          >
+            ← Voltar aos podcasts
+          </button>
+          <div className="flex gap-6 mb-6">
+            <img src={selected.coverUrl} alt={selected.title} className="h-40 w-40 rounded-xl object-cover shrink-0" />
+            <div className="flex flex-col justify-end min-w-0">
+              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Podcast</p>
+              <h2 className="text-2xl font-bold text-white mb-1">{selected.title}</h2>
+              <p className="text-sm text-gray-400 mb-2">{selected.artistName} • {selected.episodes.length} episódios</p>
+              <p className="text-xs text-gray-500 mb-3">{selected.description}</p>
+              <div className="flex gap-2">
+                <Button
+                  className="rounded-full bg-emerald-500 text-white hover:bg-emerald-600 gap-1.5"
+                  onClick={() => playAllEpisodes(selected)}
+                >
+                  <Play className="h-4 w-4" fill="white" /> Ouvir Tudo
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Episodes List */}
+          <div className="space-y-2">
+            {selected.episodes.map((ep, i) => (
+              <div
+                key={ep.id}
+                className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors group"
+                onClick={() => playEpisode(ep, selected)}
+              >
+                <span className="text-xs font-bold text-gray-600 w-4 text-center shrink-0">{i + 1}</span>
+                <img src={selected.coverUrl} alt={ep.title} className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate group-hover:text-emerald-400 transition-colors">{ep.title}</p>
+                  <p className="text-xs text-gray-500 truncate">{ep.description}</p>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatDuration(ep.duration)}</span>
+                    <span>{formatPlayCount(ep.playCount)} plays</span>
+                    {ep.isExclusive && <span className="text-amber-400">Exclusivo</span>}
+                  </div>
+                </div>
+                <Button size="sm" className="shrink-0 rounded-full bg-white/10 text-white hover:bg-emerald-500 h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-all">
+                  <Play className="h-4 w-4 ml-0.5" fill="white" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* All Podcasts Grid */}
+          <h2 className="text-lg font-bold text-white mb-3">Todos os Podcasts</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-8">
+            {mockPodcasts.map((podcast) => (
+              <div
+                key={podcast.id}
+                className="group cursor-pointer"
+                onClick={() => setSelectedPodcast(podcast.id)}
+              >
+                <div className="aspect-square overflow-hidden rounded-lg mb-2 relative">
+                  <img src={podcast.coverUrl} alt={podcast.title} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                  {/* Play overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+                    <div className="h-12 w-12 rounded-full bg-emerald-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-lg">
+                      <Play className="h-5 w-5 text-white ml-0.5" fill="white" />
+                    </div>
+                  </div>
+                  {podcast.isExclusive && (
+                    <Badge className="absolute top-2 right-2 bg-amber-500/80 text-white text-[8px]">Exclusivo</Badge>
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-white truncate">{podcast.title}</p>
+                <p className="text-xs text-gray-400 truncate">{podcast.artistName}</p>
+                <p className="text-xs text-gray-500">{podcast.episodes?.length || 0} episódios</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Upload Dialog */}
+      {uploadDialog && (
+        <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setUploadDialog(false)}>
+          <div className="max-w-md w-full bg-gray-900 rounded-2xl p-6 border border-white/10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Upload de Episódio</h3>
+              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white" onClick={() => setUploadDialog(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-400 mb-1.5 block">Título do Episódio *</label>
+                <Input placeholder="Ex: Episódio 10 - Entrevista especial" className="bg-gray-800 border-gray-700 text-white" />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1.5 block">Podcast *</label>
+                <select className="w-full rounded-lg bg-gray-800 border-gray-700 text-white px-3 py-2 text-sm">
+                  <option>Selecione o podcast...</option>
+                  {mockPodcasts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1.5 block">Arquivo de Áudio *</label>
+                <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer">
+                  <Upload className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-400">Arraste o arquivo ou clique para selecionar</p>
+                  <p className="text-xs text-gray-600 mt-1">MP3, WAV, M4A — Máximo 500MB</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1.5 block">Descrição</label>
+                <textarea placeholder="Descreva o episódio..." className="w-full rounded-lg bg-gray-800 border-gray-700 text-white px-3 py-2 text-sm h-20 resize-none" />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="exclusive" className="rounded border-gray-700" />
+                <label htmlFor="exclusive" className="text-sm text-gray-400">Conteúdo exclusivo Premium</label>
+              </div>
+              <Button className="w-full rounded-full bg-emerald-500 text-white hover:bg-emerald-600">
+                <Upload className="h-4 w-4 mr-1.5" /> Publicar Episódio
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -416,7 +750,7 @@ export default function Home() {
     view, setView, user, setUser, isAuthenticated, setIsAuthenticated,
     showAuthModal, setShowAuthModal, authMode, setAuthMode,
   } = useAppStore();
-  const { currentSong, setDuration, setProgress, isPlaying } = usePlayerStore();
+  const { currentSong, setDuration, setProgress, isPlaying, songsPlayedSinceAd, incrementSongsPlayed, setIsAdPlaying } = usePlayerStore();
 
   // Simulate song progress
   useEffect(() => {
@@ -424,6 +758,21 @@ export default function Home() {
     const interval = setInterval(() => { setProgress(1); }, 1000);
     return () => clearInterval(interval);
   }, [isPlaying, currentSong, setProgress]);
+
+  // Track songs played and trigger ads for free users every 2 songs
+  useEffect(() => {
+    if (!currentSong || currentSong.genre === 'Live' || currentSong.genre === 'Podcast') return;
+    // Only count when a new song starts playing
+    incrementSongsPlayed();
+  }, [currentSong?.id]);
+
+  useEffect(() => {
+    // Show ad every 2 songs for free plan users
+    if (user?.plan !== 'free' && user?.role !== 'free') return;
+    if (songsPlayedSinceAd > 0 && songsPlayedSinceAd % 2 === 0) {
+      setIsAdPlaying(true);
+    }
+  }, [songsPlayedSinceAd, user?.plan, user?.role, setIsAdPlaying]);
 
   // Handle successful login from API
   const handleLoginSuccess = useCallback((user: UserType) => {
@@ -523,6 +872,7 @@ export default function Home() {
         </main>
       </div>
       <PlayerBar />
+      <AdOverlay />
       <AnimatePresence>
         {usePlayerStore.getState().showFullPlayer && <FullPlayer />}
       </AnimatePresence>
