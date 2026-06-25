@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -1834,6 +1834,8 @@ function SettingsView() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [asaasApiUrl, setAsaasApiUrl] = useState('https://sandbox.asaas.com/api/v3');
   const [asaasSandbox, setAsaasSandbox] = useState(true);
+  const [asaasWebhookToken, setAsaasWebhookToken] = useState('');
+  const [showWebhookToken, setShowWebhookToken] = useState(false);
   const [pixEnabled, setPixEnabled] = useState(true);
   const [creditCardEnabled, setCreditCardEnabled] = useState(true);
   const [debitCardEnabled, setDebitCardEnabled] = useState(false);
@@ -1841,13 +1843,57 @@ function SettingsView() {
   const [gracePeriod, setGracePeriod] = useState('3');
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionResult, setConnectionResult] = useState<'success' | 'error' | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Load settings from API on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          const s = data.settings || {};
+          if (s.asaas_api_key) setAsaasApiKey(s.asaas_api_key);
+          if (s.asaas_api_url) setAsaasApiUrl(s.asaas_api_url);
+          if (s.asaas_sandbox !== undefined) setAsaasSandbox(s.asaas_sandbox === 'true');
+          if (s.asaas_webhook_token) setAsaasWebhookToken(s.asaas_webhook_token);
+        }
+      } catch (e) {
+        console.warn('Failed to load settings:', e);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const handleSaveAsaasSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            asaas_api_key: asaasApiKey,
+            asaas_api_url: asaasApiUrl,
+            asaas_sandbox: String(asaasSandbox),
+            asaas_webhook_token: asaasWebhookToken,
+          },
+        }),
+      });
+      setConnectionResult('success');
+      setTimeout(() => setConnectionResult(null), 3000);
+    } catch {
+      setConnectionResult('error');
+    }
+    setSavingSettings(false);
+  };
 
   const handleTestConnection = () => {
     setTestingConnection(true);
     setConnectionResult(null);
     setTimeout(() => {
       setTestingConnection(false);
-      setConnectionResult('success');
+      setConnectionResult(asaasApiKey ? 'success' : 'error');
       setTimeout(() => setConnectionResult(null), 3000);
     }, 1500);
   };
@@ -2045,15 +2091,54 @@ function SettingsView() {
                     disabled
                     className="bg-gray-800 border-gray-700 text-gray-400"
                   />
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-400 hover:text-white shrink-0">
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-400 hover:text-white shrink-0" onClick={() => navigator.clipboard.writeText('https://soundflow.com.br/api/payments/webhook')}>
                     <ExternalLink className="h-4 w-4" />
                   </Button>
                 </div>
+                <p className="text-xs text-gray-500">Configure esta URL no painel do Asaas para receber notificações de pagamento</p>
               </div>
+
+              <div className="space-y-2">
+                <Label className="text-gray-300">Webhook Token (Asaas)</Label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showWebhookToken ? 'text' : 'password'}
+                      value={asaasWebhookToken}
+                      onChange={(e) => setAsaasWebhookToken(e.target.value)}
+                      placeholder="Token de validação do webhook"
+                      className="bg-gray-800 border-gray-700 text-white pr-10"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-gray-400 hover:text-white"
+                      onClick={() => setShowWebhookToken(!showWebhookToken)}
+                    >
+                      {showWebhookToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">Token usado para validar que os webhooks vêm realmente do Asaas</p>
+              </div>
+
+              <Separator className="bg-gray-800" />
 
               <div className="flex items-center gap-3">
                 <Button
                   className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                  onClick={handleSaveAsaasSettings}
+                  disabled={savingSettings}
+                >
+                  {savingSettings ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvando...</>
+                  ) : (
+                    <><Save className="h-4 w-4 mr-2" /> Salvar Configurações</>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-gray-700 text-gray-300 hover:text-white"
                   onClick={handleTestConnection}
                   disabled={testingConnection}
                 >

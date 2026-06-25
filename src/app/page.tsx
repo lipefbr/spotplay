@@ -6,7 +6,7 @@ import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
   Volume2, VolumeX, Heart, Music2, Maximize2, ChevronDown,
   Mic2, ListMusic, ChevronUp, X, Plus, Radio, Megaphone, Headphones,
-  Upload, Clock, Calendar, Bell, Crown,
+  Upload, Clock, Calendar, Bell, Crown, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -659,31 +659,125 @@ function PodcastsView() {
 
 // ===== PROFILE VIEW =====
 function ProfileView() {
-  const { user, setView, setSelectedPlaylistId } = useAppStore();
+  const { user, setView, setSelectedPlaylistId, setUser } = useAppStore();
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editAvatar, setEditAvatar] = useState(user?.avatar || '');
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState('');
+
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id, name: editName, avatar: editAvatar }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser({ ...user, name: data.user.name, avatar: data.user.avatar } as UserType);
+        setSaveMsg('Perfil salvo com sucesso!');
+        setEditing(false);
+      } else {
+        setSaveMsg('Erro ao salvar perfil');
+      }
+    } catch {
+      setSaveMsg('Erro ao salvar perfil');
+    }
+    setSaving(false);
+    setTimeout(() => setSaveMsg(''), 3000);
+  };
+
   return (
     <div className="px-4 pt-2 pb-8 lg:px-6">
       <div className="max-w-3xl mx-auto">
-        <div className="flex flex-col items-center gap-4 mb-8">
-          <Avatar className="h-32 w-32">
-            <AvatarImage src={user?.avatar} alt={user?.name || 'User'} />
-            <AvatarFallback className="bg-emerald-700 text-white text-3xl h-32 w-32">
-              {(user?.name || 'U').charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <h1 className="text-2xl font-bold text-white">{user?.name || 'Usuário'}</h1>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-400">@{user?.username || 'user'}</span>
-            <span className="text-gray-600">•</span>
-            <span className={`text-sm font-medium ${user?.plan === 'free' ? 'text-gray-400' : 'text-emerald-400'}`}>
-              {user?.plan === 'free' ? 'Plano Free' : 'Premium'}
-            </span>
-            {user?.role === 'admin' && (
-              <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium">Admin</span>
-            )}
-            {user?.role === 'creator' && (
-              <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-medium">Criador</span>
+        {/* Profile Header */}
+        <div className="flex flex-col items-center gap-4 mb-8 relative">
+          <div className="relative group">
+            <Avatar className="h-32 w-32">
+              <AvatarImage src={editing ? editAvatar || undefined : user?.avatar} alt={user?.name || 'User'} />
+              <AvatarFallback className="bg-emerald-700 text-white text-3xl h-32 w-32">
+                {(user?.name || 'U').charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            {editing && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer" onClick={() => {
+                const url = prompt('URL da foto de perfil:', editAvatar);
+                if (url !== null) setEditAvatar(url);
+              }}>
+                <span className="text-xs text-white font-medium">📷 Trocar foto</span>
+              </div>
             )}
           </div>
+
+          {editing ? (
+            <div className="w-full max-w-sm space-y-3">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Nome</label>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white text-center text-lg"
+                  placeholder="Seu nome"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">URL da foto</label>
+                <Input
+                  value={editAvatar}
+                  onChange={(e) => setEditAvatar(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white text-sm"
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 rounded-full bg-emerald-500 text-white hover:bg-emerald-600"
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                >
+                  {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</> : 'Salvar'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 rounded-full border-gray-700 text-gray-300 hover:text-white"
+                  onClick={() => { setEditing(false); setEditName(user?.name || ''); setEditAvatar(user?.avatar || ''); }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+              {saveMsg && (
+                <p className={`text-sm text-center ${saveMsg.includes('sucesso') ? 'text-emerald-400' : 'text-red-400'}`}>{saveMsg}</p>
+              )}
+            </div>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-white">{user?.name || 'Usuário'}</h1>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">@{user?.username || 'user'}</span>
+                <span className="text-gray-600">•</span>
+                <span className={`text-sm font-medium ${user?.plan === 'free' ? 'text-gray-400' : 'text-emerald-400'}`}>
+                  {user?.plan === 'free' ? 'Plano Free' : 'Premium'}
+                </span>
+                {user?.role === 'admin' && (
+                  <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium">Admin</span>
+                )}
+                {user?.role === 'creator' && (
+                  <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-medium">Criador</span>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full border-gray-700 text-gray-300 hover:text-white hover:border-emerald-500 gap-1.5"
+                onClick={() => setEditing(true)}
+              >
+                ✏️ Editar Perfil
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Minhas Playlists */}

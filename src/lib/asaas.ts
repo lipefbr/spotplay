@@ -1,8 +1,49 @@
 // Asaas Payment Integration
 // API Docs: https://docs.asaas.com/
 
-const ASASS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3';
-const ASASS_API_KEY = process.env.ASAAS_API_KEY || '';
+// Default values (overridden by DB settings saved from admin panel)
+const DEFAULT_ASASS_API_URL = 'https://sandbox.asaas.com/api/v3';
+const DEFAULT_ASASS_API_KEY = '';
+
+/** Get Asaas API URL from DB settings, fallback to env var, then default */
+export async function getAsaasApiUrl(): Promise<string> {
+  try {
+    const { db } = await import('@/lib/db');
+    const config = await db.platformConfig.findUnique({ where: { key: 'asaas_api_url' } });
+    if (config?.value) return config.value;
+  } catch {}
+  return process.env.ASAAS_API_URL || DEFAULT_ASASS_API_URL;
+}
+
+/** Get Asaas API Key from DB settings, fallback to env var, then default */
+export async function getAsaasApiKey(): Promise<string> {
+  try {
+    const { db } = await import('@/lib/db');
+    const config = await db.platformConfig.findUnique({ where: { key: 'asaas_api_key' } });
+    if (config?.value) return config.value;
+  } catch {}
+  return process.env.ASAAS_API_KEY || DEFAULT_ASASS_API_KEY;
+}
+
+/** Check if Asaas is in sandbox mode */
+export async function isAsaasSandbox(): Promise<boolean> {
+  try {
+    const { db } = await import('@/lib/db');
+    const config = await db.platformConfig.findUnique({ where: { key: 'asaas_sandbox' } });
+    if (config?.value !== undefined) return config.value === 'true';
+  } catch {}
+  return true; // Default to sandbox
+}
+
+/** Get webhook token for validation */
+export async function getAsaasWebhookToken(): Promise<string> {
+  try {
+    const { db } = await import('@/lib/db');
+    const config = await db.platformConfig.findUnique({ where: { key: 'asaas_webhook_token' } });
+    if (config?.value) return config.value;
+  } catch {}
+  return process.env.ASAAS_WEBHOOK_TOKEN || '';
+}
 
 // ===== INTERFACES =====
 
@@ -55,14 +96,35 @@ interface AsaasSubscriptionData {
   creditCardHolderPhone?: string;
 }
 
-// ===== CUSTOMER =====
+// ===== HELPER: Dynamic config from DB =====
+
+let _configCache: { url: string; key: string } | null = null;
+let _configCacheTime = 0;
+const CONFIG_CACHE_TTL = 30000; // 30 seconds
+
+async function getConfig(): Promise<{ url: string; key: string }> {
+  const now = Date.now();
+  if (_configCache && now - _configCacheTime < CONFIG_CACHE_TTL) return _configCache;
+  
+  const [url, key] = await Promise.all([getAsaasApiUrl(), getAsaasApiKey()]);
+  _configCache = { url, key };
+  _configCacheTime = now;
+  return _configCache;
+}
+
+/** Clear the cached config (call after saving new settings) */
+export function clearAsaasConfigCache() {
+  _configCache = null;
+  _configCacheTime = 0;
+}
 
 export async function createAsaasCustomer(data: AsaasCustomerData) {
-  const response = await fetch(`${ASASS_API_URL}/customers`, {
+  const { url, key } = await getConfig();
+  const response = await fetch(`${url}/customers`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'access_token': ASASS_API_KEY,
+      'access_token': key,
     },
     body: JSON.stringify(data),
   });
@@ -77,8 +139,8 @@ export async function createAsaasCustomer(data: AsaasCustomerData) {
 
 /** Find existing customer by CPF/CNPJ or email */
 export async function findAsaasCustomer(cpfCnpj: string, email: string): Promise<string | null> {
-  const response = await fetch(`${ASASS_API_URL}/customers?cpfCnpj=${cpfCnpj}`, {
-    headers: { 'access_token': ASASS_API_KEY },
+  const response = await fetch(`${(await getConfig()).url}/customers?cpfCnpj=${cpfCnpj}`, {
+    headers: { 'access_token': (await getConfig()).key },
   });
 
   if (!response.ok) return null;
@@ -89,8 +151,8 @@ export async function findAsaasCustomer(cpfCnpj: string, email: string): Promise
   }
 
   // Try by email
-  const responseEmail = await fetch(`${ASASS_API_URL}/customers?email=${encodeURIComponent(email)}`, {
-    headers: { 'access_token': ASASS_API_KEY },
+  const responseEmail = await fetch(`${(await getConfig()).url}/customers?email=${encodeURIComponent(email)}`, {
+    headers: { 'access_token': (await getConfig()).key },
   });
 
   if (!responseEmail.ok) return null;
@@ -116,11 +178,11 @@ export async function getOrCreateCustomer(data: AsaasCustomerData): Promise<stri
 // ===== PAYMENTS (one-time) =====
 
 export async function createAsaasPayment(data: AsaasPaymentData & AsaasCreditCardData) {
-  const response = await fetch(`${ASASS_API_URL}/payments`, {
+  const response = await fetch(`${(await getConfig()).url}/payments`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'access_token': ASASS_API_KEY,
+      'access_token': (await getConfig()).key,
     },
     body: JSON.stringify(data),
   });
@@ -134,9 +196,9 @@ export async function createAsaasPayment(data: AsaasPaymentData & AsaasCreditCar
 }
 
 export async function getPixQrCode(paymentId: string) {
-  const response = await fetch(`${ASASS_API_URL}/payments/${paymentId}/pixQrCode`, {
+  const response = await fetch(`${(await getConfig()).url}/payments/${paymentId}/pixQrCode`, {
     headers: {
-      'access_token': ASASS_API_KEY,
+      'access_token': (await getConfig()).key,
     },
   });
 
@@ -150,8 +212,8 @@ export async function getPixQrCode(paymentId: string) {
 /** Get PIX QR code for a subscription's first payment */
 export async function getSubscriptionPixQrCode(subscriptionId: string) {
   // First get the subscription's current payment
-  const response = await fetch(`${ASASS_API_URL}/subscriptions/${subscriptionId}/payments`, {
-    headers: { 'access_token': ASASS_API_KEY },
+  const response = await fetch(`${(await getConfig()).url}/subscriptions/${subscriptionId}/payments`, {
+    headers: { 'access_token': (await getConfig()).key },
   });
 
   if (!response.ok) {
@@ -168,9 +230,9 @@ export async function getSubscriptionPixQrCode(subscriptionId: string) {
 }
 
 export async function getAsaasPaymentStatus(paymentId: string) {
-  const response = await fetch(`${ASASS_API_URL}/payments/${paymentId}`, {
+  const response = await fetch(`${(await getConfig()).url}/payments/${paymentId}`, {
     headers: {
-      'access_token': ASASS_API_KEY,
+      'access_token': (await getConfig()).key,
     },
   });
 
@@ -191,11 +253,11 @@ export async function getAsaasPaymentStatus(paymentId: string) {
  * If billingType is PIX, the subscriber needs to pay each month (Asaas generates a new PIX each cycle).
  */
 export async function createAsaasSubscription(data: AsaasSubscriptionData) {
-  const response = await fetch(`${ASASS_API_URL}/subscriptions`, {
+  const response = await fetch(`${(await getConfig()).url}/subscriptions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'access_token': ASASS_API_KEY,
+      'access_token': (await getConfig()).key,
     },
     body: JSON.stringify(data),
   });
@@ -210,8 +272,8 @@ export async function createAsaasSubscription(data: AsaasSubscriptionData) {
 
 /** Get subscription details from Asaas */
 export async function getAsaasSubscription(subscriptionId: string) {
-  const response = await fetch(`${ASASS_API_URL}/subscriptions/${subscriptionId}`, {
-    headers: { 'access_token': ASASS_API_KEY },
+  const response = await fetch(`${(await getConfig()).url}/subscriptions/${subscriptionId}`, {
+    headers: { 'access_token': (await getConfig()).key },
   });
 
   if (!response.ok) {
@@ -223,8 +285,8 @@ export async function getAsaasSubscription(subscriptionId: string) {
 
 /** List payments for a subscription */
 export async function getSubscriptionPayments(subscriptionId: string) {
-  const response = await fetch(`${ASASS_API_URL}/subscriptions/${subscriptionId}/payments`, {
-    headers: { 'access_token': ASASS_API_KEY },
+  const response = await fetch(`${(await getConfig()).url}/subscriptions/${subscriptionId}/payments`, {
+    headers: { 'access_token': (await getConfig()).key },
   });
 
   if (!response.ok) {
@@ -236,10 +298,10 @@ export async function getSubscriptionPayments(subscriptionId: string) {
 
 /** Cancel a subscription on Asaas (DELETE request) */
 export async function cancelAsaasSubscription(subscriptionId: string) {
-  const response = await fetch(`${ASASS_API_URL}/subscriptions/${subscriptionId}`, {
+  const response = await fetch(`${(await getConfig()).url}/subscriptions/${subscriptionId}`, {
     method: 'DELETE',
     headers: {
-      'access_token': ASASS_API_KEY,
+      'access_token': (await getConfig()).key,
     },
   });
 
@@ -252,11 +314,11 @@ export async function cancelAsaasSubscription(subscriptionId: string) {
 
 /** Update a subscription on Asaas */
 export async function updateAsaasSubscription(subscriptionId: string, data: Partial<AsaasSubscriptionData>) {
-  const response = await fetch(`${ASASS_API_URL}/subscriptions/${subscriptionId}`, {
+  const response = await fetch(`${(await getConfig()).url}/subscriptions/${subscriptionId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'access_token': ASASS_API_KEY,
+      'access_token': (await getConfig()).key,
     },
     body: JSON.stringify(data),
   });

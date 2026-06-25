@@ -543,3 +543,11 @@ model Coupon {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// ===== PLATFORM CONFIG =====
+
+model PlatformConfig {
+  key       String @id  // e.g. "asaas_api_key", "asaas_api_url", "asaas_sandbox", "asaas_webhook_token"
+  value     String @default("")
+  updatedAt DateTime @updatedAt
+}
