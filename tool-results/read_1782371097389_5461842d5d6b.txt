@@ -1,0 +1,1496 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useState } from 'react';
+     4→     4→import {
+     5→     5→  LayoutDashboard,
+     6→     6→  Music,
+     7→     7→  Disc3,
+     8→     8→  Radio,
+     9→     9→  Activity,
+    10→    10→  BarChart3,
+    11→    11→  Wallet,
+    12→    12→  Settings,
+    13→    13→  Upload,
+    14→    14→  TrendingUp,
+    15→    15→  ArrowUpRight,
+    16→    16→  ArrowDownRight,
+    17→    17→  Headphones,
+    18→    18→  Clock,
+    19→    19→  DollarSign,
+    20→    20→  Globe,
+    21→    21→  Smartphone,
+    22→    22→  Tablet,
+    23→    23→  Monitor,
+    24→    24→  Tv,
+    25→    25→  Bell,
+    26→    26→  ChevronRight,
+    27→    27→  Play,
+    28→    28→  MoreHorizontal,
+    29→    29→  Plus,
+    30→    30→  FileAudio,
+    31→    31→  ImagePlus,
+    32→    32→  CheckCircle2,
+    33→    33→  AlertCircle,
+    34→    34→  Download,
+    35→    35→  CreditCard,
+    36→    36→  RefreshCw,
+    37→    37→  X,
+    38→    38→  Calendar,
+    39→    39→  Eye,
+    40→    40→} from 'lucide-react';
+    41→    41→import {
+    42→    42→  LineChart,
+    43→    43→  Line,
+    44→    44→  BarChart,
+    45→    45→  Bar,
+    46→    46→  XAxis,
+    47→    47→  YAxis,
+    48→    48→  CartesianGrid,
+    49→    49→  Tooltip,
+    50→    50→  ResponsiveContainer,
+    51→    51→  PieChart,
+    52→    52→  Pie,
+    53→    53→  Cell,
+    54→    54→  AreaChart,
+    55→    55→  Area,
+    56→    56→} from 'recharts';
+    57→    57→
+    58→    58→import { Button } from '@/components/ui/button';
+    59→    59→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+    60→    60→import { Input } from '@/components/ui/input';
+    61→    61→import { Label } from '@/components/ui/label';
+    62→    62→import { Badge } from '@/components/ui/badge';
+    63→    63→import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+    64→    64→import {
+    65→    65→  Table,
+    66→    66→  TableBody,
+    67→    67→  TableCell,
+    68→    68→  TableHead,
+    69→    69→  TableHeader,
+    70→    70→  TableRow,
+    71→    71→} from '@/components/ui/table';
+    72→    72→import {
+    73→    73→  Select,
+    74→    74→  SelectContent,
+    75→    75→  SelectItem,
+    76→    76→  SelectTrigger,
+    77→    77→  SelectValue,
+    78→    78→} from '@/components/ui/select';
+    79→    79→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    80→    80→import { creatorAnalytics, mockSongs, mockPodcasts, mockLiveStreams } from '@/lib/mock-data';
+    81→    81→import { formatCurrency, formatPlayCount } from '@/lib/asaas';
+    82→    82→import { Textarea } from '@/components/ui/textarea';
+    83→    83→import { useToast } from '@/hooks/use-toast';
+    84→    84→
+    85→    85→// ===== SIDEBAR NAV ITEMS =====
+    86→    86→
+    87→    87→type CreatorView =
+    88→    88→  | 'dashboard'
+    89→    89→  | 'music'
+    90→    90→  | 'albums'
+    91→    91→  | 'podcasts'
+    92→    92→  | 'lives'
+    93→    93→  | 'analytics'
+    94→    94→  | 'financial'
+    95→    95→  | 'settings';
+    96→    96→
+    97→    97→const creatorNavItems: { id: CreatorView; label: string; icon: React.ElementType }[] = [
+    98→    98→  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    99→    99→  { id: 'music', label: 'Músicas', icon: Music },
+   100→   100→  { id: 'albums', label: 'Álbuns', icon: Disc3 },
+   101→   101→  { id: 'podcasts', label: 'Podcasts', icon: Radio },
+   102→   102→  { id: 'lives', label: 'Lives', icon: Activity },
+   103→   103→  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+   104→   104→  { id: 'financial', label: 'Financeiro', icon: Wallet },
+   105→   105→  { id: 'settings', label: 'Configurações', icon: Settings },
+   106→   106→];
+   107→   107→
+   108→   108→// ===== MOCK DATA =====
+   109→   109→
+   110→   110→const mockCreatorSongs = [
+   111→   111→  { id: 'cs1', title: 'Noites de São Paulo', album: 'Urbanidade', genre: 'MPB', plays: 1523456, status: 'published', releaseDate: '2025-03-15' },
+   112→   112→  { id: 'cs2', title: 'Saudade Boa', album: 'Urbanidade', genre: 'MPB', plays: 876543, status: 'published', releaseDate: '2025-03-15' },
+   113→   113→  { id: 'cs3', title: 'Amanhecer', album: 'Horizonte', genre: 'Sertanejo', plays: 3456789, status: 'published', releaseDate: '2025-01-20' },
+   114→   114→  { id: 'cs4', title: 'Céu Aberto', album: 'Horizonte', genre: 'Sertanejo', plays: 2345678, status: 'published', releaseDate: '2025-01-20' },
+   115→   115→  { id: 'cs5', title: 'Novo Horizonte', album: '-', genre: 'MPB', plays: 0, status: 'pending', releaseDate: '2025-07-15' },
+   116→   116→];
+   117→   117→
+   118→   118→const mockEarnings = [
+   119→   119→  { month: 'Jan', streaming: 280.5, downloads: 45.2, live: 120.0, total: 445.7 },
+   120→   120→  { month: 'Fev', streaming: 310.8, downloads: 52.1, live: 0, total: 362.9 },
+   121→   121→  { month: 'Mar', streaming: 345.2, downloads: 48.7, live: 200.0, total: 593.9 },
+   122→   122→  { month: 'Abr', streaming: 390.1, downloads: 55.3, live: 0, total: 445.4 },
+   123→   123→  { month: 'Mai', streaming: 420.5, downloads: 60.8, live: 150.0, total: 631.3 },
+   124→   124→  { month: 'Jun', streaming: 465.3, downloads: 65.2, live: 280.0, total: 810.5 },
+   125→   125→];
+   126→   126→
+   127→   127→const mockTransactions = [
+   128→   128→  { id: 't1', type: 'credit', description: 'Royalties - Streaming', amount: 465.30, date: '2025-06-01', status: 'completed' },
+   129→   129→  { id: 't2', type: 'credit', description: 'Royalties - Downloads', amount: 65.20, date: '2025-06-01', status: 'completed' },
+   130→   130→  { id: 't3', type: 'credit', description: 'Receita Live', amount: 280.00, date: '2025-06-05', status: 'completed' },
+   131→   131→  { id: 't4', type: 'debit', description: 'Saque realizado', amount: -500.00, date: '2025-06-10', status: 'completed' },
+   132→   132→  { id: 't5', type: 'credit', description: 'Royalties - Streaming', amount: 420.50, date: '2025-05-01', status: 'completed' },
+   133→   133→  { id: 't6', type: 'debit', description: 'Saque realizado', amount: -400.00, date: '2025-05-15', status: 'completed' },
+   134→   134→];
+   135→   135→
+   136→   136→const countryColors = ['#10b981', '#34d399', '#6ee7b7', '#374151'];
+   137→   137→const deviceColors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'];
+   138→   138→
+   139→   139→// ===== COMPONENT =====
+   140→   140→
+   141→   141→export default function CreatorPanel() {
+   142→   142→  const [activeView, setActiveView] = useState<CreatorView>('dashboard');
+   143→   143→  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+   144→   144→  const [showUploadModal, setShowUploadModal] = useState(false);
+   145→   145→  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+   146→   146→  const [showScheduleLiveModal, setShowScheduleLiveModal] = useState(false);
+   147→   147→  const [scheduleLiveForm, setScheduleLiveForm] = useState({
+   148→   148→    title: '',
+   149→   149→    description: '',
+   150→   150→    dateTime: '',
+   151→   151→  });
+   152→   152→  const [uploadForm, setUploadForm] = useState({
+   153→   153→    title: '',
+   154→   154→    genre: '',
+   155→   155→    album: '',
+   156→   156→    coverFile: null as File | null,
+   157→   157→    audioFile: null as File | null,
+   158→   158→  });
+   159→   159→  const { toast } = useToast();
+   160→   160→
+   161→   161→  const data = creatorAnalytics;
+   162→   162→
+   163→   163→  // ===== STAT CARDS =====
+   164→   164→
+   165→   165→  const creatorStatCards = [
+   166→   166→    {
+   167→   167→      title: 'Ouvintes Únicos',
+   168→   168→      value: data.uniqueListeners.toLocaleString('pt-BR'),
+   169→   169→      change: '+18.2%',
+   170→   170→      trend: 'up' as const,
+   171→   171→      icon: Headphones,
+   172→   172→      description: 'vs. mês anterior',
+   173→   173→    },
+   174→   174→    {
+   175→   175→      title: 'Reproduções',
+   176→   176→      value: formatPlayCount(data.totalPlays),
+   177→   177→      change: '+22.5%',
+   178→   178→      trend: 'up' as const,
+   179→   179→      icon: Play,
+   180→   180→      description: 'vs. mês anterior',
+   181→   181→    },
+   182→   182→    {
+   183→   183→      title: 'Minutos Ouvidos',
+   184→   184→      value: `${(data.totalMinutes / 1000).toFixed(0)}K`,
+   185→   185→      change: '+15.8%',
+   186→   186→      trend: 'up' as const,
+   187→   187→      icon: Clock,
+   188→   188→      description: 'vs. mês anterior',
+   189→   189→    },
+   190→   190→    {
+   191→   191→      title: 'Receita',
+   192→   192→      value: formatCurrency(data.revenue),
+   193→   193→      change: '+31.2%',
+   194→   194→      trend: 'up' as const,
+   195→   195→      icon: DollarSign,
+   196→   196→      description: 'vs. mês anterior',
+   197→   197→    },
+   198→   198→  ];
+   199→   199→
+   200→   200→  // ===== RENDER SIDEBAR =====
+   201→   201→
+   202→   202→  const renderSidebar = () => (
+   203→   203→    <aside
+   204→   204→      className={`${
+   205→   205→        sidebarCollapsed ? 'w-16' : 'w-64'
+   206→   206→      } bg-gray-900 border-r border-gray-800 flex flex-col transition-all duration-300 h-full`}
+   207→   207→    >
+   208→   208→      {/* Logo */}
+   209→   209→      <div className="p-4 border-b border-gray-800 flex items-center gap-3">
+   210→   210→        <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
+   211→   211→          <Music className="w-5 h-5 text-white" />
+   212→   212→        </div>
+   213→   213→        {!sidebarCollapsed && (
+   214→   214→          <div className="overflow-hidden">
+   215→   215→            <h1 className="text-white font-bold text-lg leading-tight">SoundFlow</h1>
+   216→   216→            <p className="text-gray-400 text-xs">Creator Studio</p>
+   217→   217→          </div>
+   218→   218→        )}
+   219→   219→      </div>
+   220→   220→
+   221→   221→      {/* Creator Profile */}
+   222→   222→      {!sidebarCollapsed && (
+   223→   223→        <div className="p-4 border-b border-gray-800">
+   224→   224→          <div className="flex items-center gap-3">
+   225→   225→            <Avatar className="w-10 h-10">
+   226→   226→              <AvatarFallback className="bg-emerald-500/30 text-emerald-400 text-sm font-bold">
+   227→   227→                LM
+   228→   228→              </AvatarFallback>
+   229→   229→            </Avatar>
+   230→   230→            <div className="min-w-0">
+   231→   231→              <p className="text-white text-sm font-medium truncate">Lucas Mendes</p>
+   232→   232→              <p className="text-gray-400 text-xs flex items-center gap-1">
+   233→   233→                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+   234→   234→                Verificado
+   235→   235→              </p>
+   236→   236→            </div>
+   237→   237→          </div>
+   238→   238→        </div>
+   239→   239→      )}
+   240→   240→
+   241→   241→      {/* Nav Items */}
+   242→   242→      <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+   243→   243→        {creatorNavItems.map((item) => {
+   244→   244→          const Icon = item.icon;
+   245→   245→          const isActive = activeView === item.id;
+   246→   246→          return (
+   247→   247→            <button
+   248→   248→              key={item.id}
+   249→   249→              onClick={() => setActiveView(item.id)}
+   250→   250→              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+   251→   251→                isActive
+   252→   252→                  ? 'bg-emerald-500/20 text-emerald-400'
+   253→   253→                  : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+   254→   254→              }`}
+   255→   255→              title={sidebarCollapsed ? item.label : undefined}
+   256→   256→            >
+   257→   257→              <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-emerald-400' : ''}`} />
+   258→   258→              {!sidebarCollapsed && (
+   259→   259→                <span className="text-sm font-medium truncate">{item.label}</span>
+   260→   260→              )}
+   261→   261→              {isActive && !sidebarCollapsed && (
+   262→   262→                <ChevronRight className="w-4 h-4 ml-auto text-emerald-400" />
+   263→   263→              )}
+   264→   264→            </button>
+   265→   265→          );
+   266→   266→        })}
+   267→   267→      </nav>
+   268→   268→
+   269→   269→      {/* Collapse Button */}
+   270→   270→      <div className="p-3 border-t border-gray-800">
+   271→   271→        <Button
+   272→   272→          variant="ghost"
+   273→   273→          size="sm"
+   274→   274→          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+   275→   275→          className="w-full text-gray-400 hover:text-white hover:bg-gray-800"
+   276→   276→        >
+   277→   277→          <RefreshCw className={`w-4 h-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+   278→   278→          {!sidebarCollapsed && <span className="ml-2 text-xs">Recolher</span>}
+   279→   279→        </Button>
+   280→   280→      </div>
+   281→   281→    </aside>
+   282→   282→  );
+   283→   283→
+   284→   284→  // ===== DASHBOARD VIEW =====
+   285→   285→
+   286→   286→  const renderDashboard = () => (
+   287→   287→    <div className="space-y-6">
+   288→   288→      {/* Stats */}
+   289→   289→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   290→   290→        {creatorStatCards.map((stat) => {
+   291→   291→          const Icon = stat.icon;
+   292→   292→          return (
+   293→   293→            <Card key={stat.title} className="bg-gray-900 border-gray-800">
+   294→   294→              <CardContent className="p-4">
+   295→   295→                <div className="flex items-center justify-between">
+   296→   296→                  <div className="space-y-1">
+   297→   297→                    <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">
+   298→   298→                      {stat.title}
+   299→   299→                    </p>
+   300→   300→                    <p className="text-white text-2xl font-bold">{stat.value}</p>
+   301→   301→                  </div>
+   302→   302→                  <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+   303→   303→                    <Icon className="w-5 h-5 text-emerald-400" />
+   304→   304→                  </div>
+   305→   305→                </div>
+   306→   306→                <div className="flex items-center gap-1 mt-3">
+   307→   307→                  {stat.trend === 'up' ? (
+   308→   308→                    <ArrowUpRight className="w-3 h-3 text-emerald-400" />
+   309→   309→                  ) : (
+   310→   310→                    <ArrowDownRight className="w-3 h-3 text-red-400" />
+   311→   311→                  )}
+   312→   312→                  <span
+   313→   313→                    className={`text-xs font-medium ${
+   314→   314→                      stat.trend === 'up' ? 'text-emerald-400' : 'text-red-400'
+   315→   315→                    }`}
+   316→   316→                  >
+   317→   317→                    {stat.change}
+   318→   318→                  </span>
+   319→   319→                  <span className="text-gray-500 text-xs">{stat.description}</span>
+   320→   320→                </div>
+   321→   321→              </CardContent>
+   322→   322→            </Card>
+   323→   323→          );
+   324→   324→        })}
+   325→   325→      </div>
+   326→   326→
+   327→   327→      {/* Monthly Plays Chart */}
+   328→   328→      <Card className="bg-gray-900 border-gray-800">
+   329→   329→        <CardHeader className="pb-2">
+   330→   330→          <div className="flex items-center justify-between">
+   331→   331→            <div>
+   332→   332→              <CardTitle className="text-white text-base">Reproduções Mensais</CardTitle>
+   333→   333→              <CardDescription className="text-gray-400 text-xs">
+   334→   334→                Evolução das reproduções nos últimos 6 meses
+   335→   335→              </CardDescription>
+   336→   336→            </div>
+   337→   337→            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+   338→   338→              <TrendingUp className="w-3 h-3 mr-1" />
+   339→   339→              +22.5%
+   340→   340→            </Badge>
+   341→   341→          </div>
+   342→   342→        </CardHeader>
+   343→   343→        <CardContent className="pt-0">
+   344→   344→          <div className="h-72">
+   345→   345→            <ResponsiveContainer width="100%" height="100%">
+   346→   346→              <AreaChart data={data.monthlyPlays} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+   347→   347→                <defs>
+   348→   348→                  <linearGradient id="colorPlays" x1="0" y1="0" x2="0" y2="1">
+   349→   349→                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+   350→   350→                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+   351→   351→                  </linearGradient>
+   352→   352→                </defs>
+   353→   353→                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+   354→   354→                <XAxis dataKey="month" stroke="#6b7280" fontSize={12} tickLine={false} />
+   355→   355→                <YAxis stroke="#6b7280" fontSize={12} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+   356→   356→                <Tooltip
+   357→   357→                  contentStyle={{
+   358→   358→                    backgroundColor: '#111827',
+   359→   359→                    border: '1px solid #1f2937',
+   360→   360→                    borderRadius: '8px',
+   361→   361→                    color: '#f9fafb',
+   362→   362→                  }}
+   363→   363→                  formatter={(value: number) => [value.toLocaleString('pt-BR'), 'Reproduções']}
+   364→   364→                  cursor={{ stroke: '#10b981', strokeWidth: 1 }}
+   365→   365→                />
+   366→   366→                <Area
+   367→   367→                  type="monotone"
+   368→   368→                  dataKey="plays"
+   369→   369→                  stroke="#10b981"
+   370→   370→                  strokeWidth={2.5}
+   371→   371→                  fillOpacity={1}
+   372→   372→                  fill="url(#colorPlays)"
+   373→   373→                />
+   374→   374→              </AreaChart>
+   375→   375→            </ResponsiveContainer>
+   376→   376→          </div>
+   377→   377→        </CardContent>
+   378→   378→      </Card>
+   379→   379→
+   380→   380→      {/* Top Countries & Top Devices */}
+   381→   381→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   382→   382→        {/* Top Countries */}
+   383→   383→        <Card className="bg-gray-900 border-gray-800">
+   384→   384→          <CardHeader className="pb-2">
+   385→   385→            <div className="flex items-center gap-2">
+   386→   386→              <Globe className="w-4 h-4 text-emerald-400" />
+   387→   387→              <CardTitle className="text-white text-base">Países com Mais Ouvintes</CardTitle>
+   388→   388→            </div>
+   389→   389→            <CardDescription className="text-gray-400 text-xs">Distribuição geográfica dos seus ouvintes</CardDescription>
+   390→   390→          </CardHeader>
+   391→   391→          <CardContent className="pt-0">
+   392→   392→            <div className="flex flex-col md:flex-row items-center gap-6">
+   393→   393→              <div className="h-48 w-48 flex-shrink-0">
+   394→   394→                <ResponsiveContainer width="100%" height="100%">
+   395→   395→                  <PieChart>
+   396→   396→                    <Pie
+   397→   397→                      data={data.topCountries}
+   398→   398→                      cx="50%"
+   399→   399→                      cy="50%"
+   400→   400→                      innerRadius={40}
+   401→   401→                      outerRadius={80}
+   402→   402→                      paddingAngle={3}
+   403→   403→                      dataKey="percentage"
+   404→   404→                      nameKey="country"
+   405→   405→                    >
+   406→   406→                      {data.topCountries.map((_, index) => (
+   407→   407→                        <Cell key={`cell-${index}`} fill={countryColors[index]} />
+   408→   408→                      ))}
+   409→   409→                    </Pie>
+   410→   410→                    <Tooltip
+   411→   411→                      contentStyle={{
+   412→   412→                        backgroundColor: '#111827',
+   413→   413→                        border: '1px solid #1f2937',
+   414→   414→                        borderRadius: '8px',
+   415→   415→                        color: '#f9fafb',
+   416→   416→                      }}
+   417→   417→                      formatter={(value: number, name: string) => [`${value}%`, name]}
+   418→   418→                    />
+   419→   419→                  </PieChart>
+   420→   420→                </ResponsiveContainer>
+   421→   421→              </div>
+   422→   422→              <div className="flex-1 space-y-3 w-full">
+   423→   423→                {data.topCountries.map((country, index) => (
+   424→   424→                  <div key={country.country} className="space-y-1.5">
+   425→   425→                    <div className="flex items-center justify-between">
+   426→   426→                      <div className="flex items-center gap-2">
+   427→   427→                        <div
+   428→   428→                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+   429→   429→                          style={{ backgroundColor: countryColors[index] }}
+   430→   430→                        />
+   431→   431→                        <span className="text-gray-300 text-sm">{country.country}</span>
+   432→   432→                      </div>
+   433→   433→                      <span className="text-white font-semibold text-sm">{country.percentage}%</span>
+   434→   434→                    </div>
+   435→   435→                    <div className="w-full bg-gray-800 rounded-full h-1.5">
+   436→   436→                      <div
+   437→   437→                        className="h-1.5 rounded-full transition-all duration-500"
+   438→   438→                        style={{
+   439→   439→                          width: `${country.percentage}%`,
+   440→   440→                          backgroundColor: countryColors[index],
+   441→   441→                        }}
+   442→   442→                      />
+   443→   443→                    </div>
+   444→   444→                  </div>
+   445→   445→                ))}
+   446→   446→              </div>
+   447→   447→            </div>
+   448→   448→          </CardContent>
+   449→   449→        </Card>
+   450→   450→
+   451→   451→        {/* Top Devices */}
+   452→   452→        <Card className="bg-gray-900 border-gray-800">
+   453→   453→          <CardHeader className="pb-2">
+   454→   454→            <div className="flex items-center gap-2">
+   455→   455→              <Smartphone className="w-4 h-4 text-emerald-400" />
+   456→   456→              <CardTitle className="text-white text-base">Dispositivos dos Ouvintes</CardTitle>
+   457→   457→            </div>
+   458→   458→            <CardDescription className="text-gray-400 text-xs">Como seus fãs estão ouvindo</CardDescription>
+   459→   459→          </CardHeader>
+   460→   460→          <CardContent className="pt-0">
+   461→   461→            <div className="flex flex-col md:flex-row items-center gap-6">
+   462→   462→              <div className="h-48 w-48 flex-shrink-0">
+   463→   463→                <ResponsiveContainer width="100%" height="100%">
+   464→   464→                  <PieChart>
+   465→   465→                    <Pie
+   466→   466→                      data={data.topDevices}
+   467→   467→                      cx="50%"
+   468→   468→                      cy="50%"
+   469→   469→                      innerRadius={40}
+   470→   470→                      outerRadius={80}
+   471→   471→                      paddingAngle={3}
+   472→   472→                      dataKey="percentage"
+   473→   473→                      nameKey="device"
+   474→   474→                    >
+   475→   475→                      {data.topDevices.map((_, index) => (
+   476→   476→                        <Cell key={`cell-${index}`} fill={deviceColors[index]} />
+   477→   477→                      ))}
+   478→   478→                    </Pie>
+   479→   479→                    <Tooltip
+   480→   480→                      contentStyle={{
+   481→   481→                        backgroundColor: '#111827',
+   482→   482→                        border: '1px solid #1f2937',
+   483→   483→                        borderRadius: '8px',
+   484→   484→                        color: '#f9fafb',
+   485→   485→                      }}
+   486→   486→                      formatter={(value: number, name: string) => [`${value}%`, name]}
+   487→   487→                    />
+   488→   488→                  </PieChart>
+   489→   489→                </ResponsiveContainer>
+   490→   490→              </div>
+   491→   491→              <div className="flex-1 space-y-3 w-full">
+   492→   492→                {data.topDevices.map((device, index) => {
+   493→   493→                  const deviceIcon =
+   494→   494→                    device.device === 'Mobile' ? Smartphone :
+   495→   495→                    device.device === 'Desktop' ? Monitor :
+   496→   496→                    device.device === 'Tablet' ? Tablet :
+   497→   497→                    Tv;
+   498→   498→                  const DeviceIcon = deviceIcon;
+   499→   499→                  return (
+   500→   500→                    <div key={device.device} className="space-y-1.5">
+   501→   501→                      <div className="flex items-center justify-between">
+   502→   502→                        <div className="flex items-center gap-2">
+   503→   503→                          <DeviceIcon className="w-4 h-4" style={{ color: deviceColors[index] }} />
+   504→   504→                          <span className="text-gray-300 text-sm">{device.device}</span>
+   505→   505→                        </div>
+   506→   506→                        <span className="text-white font-semibold text-sm">{device.percentage}%</span>
+   507→   507→                      </div>
+   508→   508→                      <div className="w-full bg-gray-800 rounded-full h-1.5">
+   509→   509→                        <div
+   510→   510→                          className="h-1.5 rounded-full transition-all duration-500"
+   511→   511→                          style={{
+   512→   512→                            width: `${device.percentage}%`,
+   513→   513→                            backgroundColor: deviceColors[index],
+   514→   514→                          }}
+   515→   515→                        />
+   516→   516→                      </div>
+   517→   517→                    </div>
+   518→   518→                  );
+   519→   519→                })}
+   520→   520→              </div>
+   521→   521→            </div>
+   522→   522→          </CardContent>
+   523→   523→        </Card>
+   524→   524→      </div>
+   525→   525→
+   526→   526→      {/* Quick Stats: Recent Songs */}
+   527→   527→      <Card className="bg-gray-900 border-gray-800">
+   528→   528→        <CardHeader className="pb-2">
+   529→   529→          <div className="flex items-center justify-between">
+   530→   530→            <div>
+   531→   531→              <CardTitle className="text-white text-base">Suas Músicas Recentes</CardTitle>
+   532→   532→              <CardDescription className="text-gray-400 text-xs">Desempenho das suas últimas faixas</CardDescription>
+   533→   533→            </div>
+   534→   534→            <Button
+   535→   535→              variant="outline"
+   536→   536→              size="sm"
+   537→   537→              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+   538→   538→              onClick={() => setActiveView('music')}
+   539→   539→            >
+   540→   540→              Ver todas
+   541→   541→            </Button>
+   542→   542→          </div>
+   543→   543→        </CardHeader>
+   544→   544→        <CardContent className="pt-0">
+   545→   545→          <Table>
+   546→   546→            <TableHeader>
+   547→   547→              <TableRow className="border-gray-800 hover:bg-transparent">
+   548→   548→                <TableHead className="text-gray-400">Música</TableHead>
+   549→   549→                <TableHead className="text-gray-400">Álbum</TableHead>
+   550→   550→                <TableHead className="text-gray-400">Gênero</TableHead>
+   551→   551→                <TableHead className="text-gray-400">Status</TableHead>
+   552→   552→                <TableHead className="text-gray-400 text-right">Reproduções</TableHead>
+   553→   553→              </TableRow>
+   554→   554→            </TableHeader>
+   555→   555→            <TableBody>
+   556→   556→              {mockCreatorSongs.slice(0, 4).map((song) => (
+   557→   557→                <TableRow key={song.id} className="border-gray-800">
+   558→   558→                  <TableCell>
+   559→   559→                    <div className="flex items-center gap-3">
+   560→   560→                      <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center flex-shrink-0">
+   561→   561→                        <Music className="w-4 h-4 text-emerald-400" />
+   562→   562→                      </div>
+   563→   563→                      <span className="text-white font-medium text-sm">{song.title}</span>
+   564→   564→                    </div>
+   565→   565→                  </TableCell>
+   566→   566→                  <TableCell className="text-gray-300 text-sm">{song.album}</TableCell>
+   567→   567→                  <TableCell>
+   568→   568→                    <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">
+   569→   569→                      {song.genre}
+   570→   570→                    </Badge>
+   571→   571→                  </TableCell>
+   572→   572→                  <TableCell>
+   573→   573→                    <Badge
+   574→   574→                      className={`text-xs ${
+   575→   575→                        song.status === 'published'
+   576→   576→                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+   577→   577→                          : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+   578→   578→                      }`}
+   579→   579→                    >
+   580→   580→                      {song.status === 'published' ? 'Publicado' : 'Pendente'}
+   581→   581→                    </Badge>
+   582→   582→                  </TableCell>
+   583→   583→                  <TableCell className="text-right text-gray-300 text-sm">
+   584→   584→                    {formatPlayCount(song.plays)}
+   585→   585→                  </TableCell>
+   586→   586→                </TableRow>
+   587→   587→              ))}
+   588→   588→            </TableBody>
+   589→   589→          </Table>
+   590→   590→        </CardContent>
+   591→   591→      </Card>
+   592→   592→    </div>
+   593→   593→  );
+   594→   594→
+   595→   595→  // ===== MUSIC VIEW =====
+   596→   596→
+   597→   597→  const renderMusic = () => (
+   598→   598→    <div className="space-y-6">
+   599→   599→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   600→   600→        <div>
+   601→   601→          <h2 className="text-white text-xl font-bold">Suas Músicas</h2>
+   602→   602→          <p className="text-gray-400 text-sm">Gerencie seu catálogo de músicas</p>
+   603→   603→        </div>
+   604→   604→        <Button
+   605→   605→          className="bg-emerald-500 hover:bg-emerald-600 text-white"
+   606→   606→          onClick={() => setShowUploadModal(true)}
+   607→   607→        >
+   608→   608→          <Plus className="w-4 h-4 mr-2" />
+   609→   609→          Nova Música
+   610→   610→        </Button>
+   611→   611→      </div>
+   612→   612→
+   613→   613→      {/* Upload Modal */}
+   614→   614→      {showUploadModal && (
+   615→   615→        <Card className="bg-gray-900 border-emerald-500/30 border">
+   616→   616→          <CardHeader className="pb-2">
+   617→   617→            <div className="flex items-center justify-between">
+   618→   618→              <CardTitle className="text-white text-base">Upload de Música</CardTitle>
+   619→   619→              <Button
+   620→   620→                variant="ghost"
+   621→   621→                size="sm"
+   622→   622→                className="text-gray-400 hover:text-white"
+   623→   623→                onClick={() => setShowUploadModal(false)}
+   624→   624→              >
+   625→   625→                <X className="w-4 h-4" />
+   626→   626→              </Button>
+   627→   627→            </div>
+   628→   628→            <CardDescription className="text-gray-400 text-xs">
+   629→   629→              Preencha os dados da sua nova música
+   630→   630→            </CardDescription>
+   631→   631→          </CardHeader>
+   632→   632→          <CardContent className="pt-0 space-y-4">
+   633→   633→            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   634→   634→              <div className="space-y-2">
+   635→   635→                <Label className="text-gray-300 text-sm">Título da Música</Label>
+   636→   636→                <Input
+   637→   637→                  placeholder="Ex: Noites de São Paulo"
+   638→   638→                  value={uploadForm.title}
+   639→   639→                  onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+   640→   640→                  className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+   641→   641→                />
+   642→   642→              </div>
+   643→   643→              <div className="space-y-2">
+   644→   644→                <Label className="text-gray-300 text-sm">Gênero</Label>
+   645→   645→                <Select
+   646→   646→                  value={uploadForm.genre}
+   647→   647→                  onValueChange={(val) => setUploadForm({ ...uploadForm, genre: val })}
+   648→   648→                >
+   649→   649→                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+   650→   650→                    <SelectValue placeholder="Selecione o gênero" />
+   651→   651→                  </SelectTrigger>
+   652→   652→                  <SelectContent className="bg-gray-800 border-gray-700">
+   653→   653→                    <SelectItem value="mpb">MPB</SelectItem>
+   654→   654→                    <SelectItem value="sertanejo">Sertanejo</SelectItem>
+   655→   655→                    <SelectItem value="eletronica">Eletrônica</SelectItem>
+   656→   656→                    <SelectItem value="pop">Pop</SelectItem>
+   657→   657→                    <SelectItem value="rock">Rock</SelectItem>
+   658→   658→                    <SelectItem value="funk">Funk</SelectItem>
+   659→   659→                    <SelectItem value="reggae">Reggae</SelectItem>
+   660→   660→                    <SelectItem value="hiphop">Hip Hop</SelectItem>
+   661→   661→                    <SelectItem value="jazz">Jazz</SelectItem>
+   662→   662→                    <SelectItem value="classica">Clássica</SelectItem>
+   663→   663→                  </SelectContent>
+   664→   664→                </Select>
+   665→   665→              </div>
+   666→   666→            </div>
+   667→   667→
+   668→   668→            <div className="space-y-2">
+   669→   669→              <Label className="text-gray-300 text-sm">Álbum (opcional)</Label>
+   670→   670→              <Input
+   671→   671→                placeholder="Ex: Urbanidade"
+   672→   672→                value={uploadForm.album}
+   673→   673→                onChange={(e) => setUploadForm({ ...uploadForm, album: e.target.value })}
+   674→   674→                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+   675→   675→              />
+   676→   676→            </div>
+   677→   677→
+   678→   678→            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+   679→   679→              {/* Cover Upload */}
+   680→   680→              <div className="space-y-2">
+   681→   681→                <Label className="text-gray-300 text-sm">Capa do Álbum</Label>
+   682→   682→                <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer">
+   683→   683→                  <ImagePlus className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+   684→   684→                  <p className="text-gray-400 text-sm">Clique para enviar a capa</p>
+   685→   685→                  <p className="text-gray-500 text-xs mt-1">JPG, PNG até 5MB</p>
+   686→   686→                </div>
+   687→   687→              </div>
+   688→   688→
+   689→   689→              {/* Audio Upload */}
+   690→   690→              <div className="space-y-2">
+   691→   691→                <Label className="text-gray-300 text-sm">Arquivo de Áudio</Label>
+   692→   692→                <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer">
+   693→   693→                  <FileAudio className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+   694→   694→                  <p className="text-gray-400 text-sm">Clique para enviar o áudio</p>
+   695→   695→                  <p className="text-gray-500 text-xs mt-1">MP3, WAV, FLAC até 50MB</p>
+   696→   696→                </div>
+   697→   697→              </div>
+   698→   698→            </div>
+   699→   699→
+   700→   700→            <div className="flex items-center gap-3 pt-2">
+   701→   701→              <Button className="bg-emerald-500 hover:bg-emerald-600 text-white flex-1 sm:flex-none">
+   702→   702→                <Upload className="w-4 h-4 mr-2" />
+   703→   703→                Enviar Música
+   704→   704→              </Button>
+   705→   705→              <Button
+   706→   706→                variant="outline"
+   707→   707→                className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex-1 sm:flex-none"
+   708→   708→                onClick={() => setShowUploadModal(false)}
+   709→   709→              >
+   710→   710→                Cancelar
+   711→   711→              </Button>
+   712→   712→            </div>
+   713→   713→          </CardContent>
+   714→   714→        </Card>
+   715→   715→      )}
+   716→   716→
+   717→   717→      {/* Songs Table */}
+   718→   718→      <Card className="bg-gray-900 border-gray-800">
+   719→   719→        <CardContent className="p-0">
+   720→   720→          <Table>
+   721→   721→            <TableHeader>
+   722→   722→              <TableRow className="border-gray-800 hover:bg-transparent">
+   723→   723→                <TableHead className="text-gray-400">Música</TableHead>
+   724→   724→                <TableHead className="text-gray-400">Álbum</TableHead>
+   725→   725→                <TableHead className="text-gray-400">Gênero</TableHead>
+   726→   726→                <TableHead className="text-gray-400">Status</TableHead>
+   727→   727→                <TableHead className="text-gray-400">Lançamento</TableHead>
+   728→   728→                <TableHead className="text-gray-400 text-right">Reproduções</TableHead>
+   729→   729→                <TableHead className="text-gray-400 text-right">Ações</TableHead>
+   730→   730→              </TableRow>
+   731→   731→            </TableHeader>
+   732→   732→            <TableBody>
+   733→   733→              {mockCreatorSongs.map((song) => (
+   734→   734→                <TableRow key={song.id} className="border-gray-800">
+   735→   735→                  <TableCell>
+   736→   736→                    <div className="flex items-center gap-3">
+   737→   737→                      <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center flex-shrink-0">
+   738→   738→                        <Music className="w-4 h-4 text-emerald-400" />
+   739→   739→                      </div>
+   740→   740→                      <span className="text-white font-medium text-sm">{song.title}</span>
+   741→   741→                    </div>
+   742→   742→                  </TableCell>
+   743→   743→                  <TableCell className="text-gray-300 text-sm">{song.album}</TableCell>
+   744→   744→                  <TableCell>
+   745→   745→                    <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">
+   746→   746→                      {song.genre}
+   747→   747→                    </Badge>
+   748→   748→                  </TableCell>
+   749→   749→                  <TableCell>
+   750→   750→                    <Badge
+   751→   751→                      className={`text-xs ${
+   752→   752→                        song.status === 'published'
+   753→   753→                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+   754→   754→                          : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+   755→   755→                      }`}
+   756→   756→                    >
+   757→   757→                      {song.status === 'published' ? 'Publicado' : 'Pendente'}
+   758→   758→                    </Badge>
+   759→   759→                  </TableCell>
+   760→   760→                  <TableCell className="text-gray-300 text-sm">{song.releaseDate}</TableCell>
+   761→   761→                  <TableCell className="text-right text-gray-300 text-sm">
+   762→   762→                    {formatPlayCount(song.plays)}
+   763→   763→                  </TableCell>
+   764→   764→                  <TableCell className="text-right">
+   765→   765→                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-gray-800">
+   766→   766→                      <MoreHorizontal className="w-4 h-4" />
+   767→   767→                    </Button>
+   768→   768→                  </TableCell>
+   769→   769→                </TableRow>
+   770→   770→              ))}
+   771→   771→            </TableBody>
+   772→   772→          </Table>
+   773→   773→        </CardContent>
+   774→   774→      </Card>
+   775→   775→    </div>
+   776→   776→  );
+   777→   777→
+   778→   778→  // ===== ANALYTICS VIEW =====
+   779→   779→
+   780→   780→  const renderAnalytics = () => (
+   781→   781→    <div className="space-y-6">
+   782→   782→      <div>
+   783→   783→        <h2 className="text-white text-xl font-bold">Analytics Detalhado</h2>
+   784→   784→        <p className="text-gray-400 text-sm">Métricas detalhadas do seu desempenho</p>
+   785→   785→      </div>
+   786→   786→
+   787→   787→      {/* Time Range Select */}
+   788→   788→      <div className="flex items-center gap-3">
+   789→   789→        <Select defaultValue="6months">
+   790→   790→          <SelectTrigger className="w-44 bg-gray-800 border-gray-700 text-white">
+   791→   791→            <SelectValue placeholder="Período" />
+   792→   792→          </SelectTrigger>
+   793→   793→          <SelectContent className="bg-gray-800 border-gray-700">
+   794→   794→            <SelectItem value="7days">Últimos 7 dias</SelectItem>
+   795→   795→            <SelectItem value="30days">Últimos 30 dias</SelectItem>
+   796→   796→            <SelectItem value="3months">Últimos 3 meses</SelectItem>
+   797→   797→            <SelectItem value="6months">Últimos 6 meses</SelectItem>
+   798→   798→            <SelectItem value="1year">Último ano</SelectItem>
+   799→   799→          </SelectContent>
+   800→   800→        </Select>
+   801→   801→      </div>
+   802→   802→
+   803→   803→      {/* Plays Over Time */}
+   804→   804→      <Card className="bg-gray-900 border-gray-800">
+   805→   805→        <CardHeader className="pb-2">
+   806→   806→          <CardTitle className="text-white text-base">Reproduções ao Longo do Tempo</CardTitle>
+   807→   807→          <CardDescription className="text-gray-400 text-xs">Evolução detalhada das reproduções</CardDescription>
+   808→   808→        </CardHeader>
+   809→   809→        <CardContent className="pt-0">
+   810→   810→          <div className="h-80">
+   811→   811→            <ResponsiveContainer width="100%" height="100%">
+   812→   812→              <AreaChart data={data.monthlyPlays} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+   813→   813→                <defs>
+   814→   814→                  <linearGradient id="colorPlaysDetail" x1="0" y1="0" x2="0" y2="1">
+   815→   815→                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+   816→   816→                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+   817→   817→                  </linearGradient>
+   818→   818→                </defs>
+   819→   819→                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+   820→   820→                <XAxis dataKey="month" stroke="#6b7280" fontSize={12} tickLine={false} />
+   821→   821→                <YAxis stroke="#6b7280" fontSize={12} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+   822→   822→                <Tooltip
+   823→   823→                  contentStyle={{
+   824→   824→                    backgroundColor: '#111827',
+   825→   825→                    border: '1px solid #1f2937',
+   826→   826→                    borderRadius: '8px',
+   827→   827→                    color: '#f9fafb',
+   828→   828→                  }}
+   829→   829→                  formatter={(value: number) => [value.toLocaleString('pt-BR'), 'Reproduções']}
+   830→   830→                />
+   831→   831→                <Area
+   832→   832→                  type="monotone"
+   833→   833→                  dataKey="plays"
+   834→   834→                  stroke="#10b981"
+   835→   835→                  strokeWidth={2.5}
+   836→   836→                  fillOpacity={1}
+   837→   837→                  fill="url(#colorPlaysDetail)"
+   838→   838→                />
+   839→   839→              </AreaChart>
+   840→   840→            </ResponsiveContainer>
+   841→   841→          </div>
+   842→   842→        </CardContent>
+   843→   843→      </Card>
+   844→   844→
+   845→   845→      {/* Detailed Stats Grid */}
+   846→   846→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   847→   847→        {/* Country Breakdown */}
+   848→   848→        <Card className="bg-gray-900 border-gray-800">
+   849→   849→          <CardHeader className="pb-2">
+   850→   850→            <CardTitle className="text-white text-base">Ouvintes por País</CardTitle>
+   851→   851→            <CardDescription className="text-gray-400 text-xs">Distribuição geográfica detalhada</CardDescription>
+   852→   852→          </CardHeader>
+   853→   853→          <CardContent className="pt-0">
+   854→   854→            <div className="h-64">
+   855→   855→              <ResponsiveContainer width="100%" height="100%">
+   856→   856→                <BarChart data={data.topCountries} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
+   857→   857→                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" horizontal={false} />
+   858→   858→                  <XAxis type="number" stroke="#6b7280" fontSize={12} tickFormatter={(v) => `${v}%`} />
+   859→   859→                  <YAxis type="category" dataKey="country" stroke="#6b7280" fontSize={12} />
+   860→   860→                  <Tooltip
+   861→   861→                    contentStyle={{
+   862→   862→                      backgroundColor: '#111827',
+   863→   863→                      border: '1px solid #1f2937',
+   864→   864→                      borderRadius: '8px',
+   865→   865→                      color: '#f9fafb',
+   866→   866→                    }}
+   867→   867→                    formatter={(value: number) => [`${value}%`, 'Participação']}
+   868→   868→                  />
+   869→   869→                  <Bar dataKey="percentage" fill="#10b981" radius={[0, 4, 4, 0]} maxBarSize={24} />
+   870→   870→                </BarChart>
+   871→   871→              </ResponsiveContainer>
+   872→   872→            </div>
+   873→   873→          </CardContent>
+   874→   874→        </Card>
+   875→   875→
+   876→   876→        {/* Device Breakdown */}
+   877→   877→        <Card className="bg-gray-900 border-gray-800">
+   878→   878→          <CardHeader className="pb-2">
+   879→   879→            <CardTitle className="text-white text-base">Dispositivos Utilizados</CardTitle>
+   880→   880→            <CardDescription className="text-gray-400 text-xs">Plataformas de acesso dos seus ouvintes</CardDescription>
+   881→   881→          </CardHeader>
+   882→   882→          <CardContent className="pt-0">
+   883→   883→            <div className="h-64">
+   884→   884→              <ResponsiveContainer width="100%" height="100%">
+   885→   885→                <PieChart>
+   886→   886→                  <Pie
+   887→   887→                    data={data.topDevices}
+   888→   888→                    cx="50%"
+   889→   889→                    cy="50%"
+   890→   890→                    outerRadius={90}
+   891→   891→                    paddingAngle={3}
+   892→   892→                    dataKey="percentage"
+   893→   893→                    nameKey="device"
+   894→   894→                    label={({ device, percentage }) => `${device}: ${percentage}%`}
+   895→   895→                  >
+   896→   896→                    {data.topDevices.map((_, index) => (
+   897→   897→                      <Cell key={`cell-${index}`} fill={deviceColors[index]} />
+   898→   898→                    ))}
+   899→   899→                  </Pie>
+   900→   900→                  <Tooltip
+   901→   901→                    contentStyle={{
+   902→   902→                      backgroundColor: '#111827',
+   903→   903→                      border: '1px solid #1f2937',
+   904→   904→                      borderRadius: '8px',
+   905→   905→                      color: '#f9fafb',
+   906→   906→                    }}
+   907→   907→                    formatter={(value: number, name: string) => [`${value}%`, name]}
+   908→   908→                  />
+   909→   909→                </PieChart>
+   910→   910→              </ResponsiveContainer>
+   911→   911→            </div>
+   912→   912→          </CardContent>
+   913→   913→        </Card>
+   914→   914→      </div>
+   915→   915→
+   916→   916→      {/* Summary Cards */}
+   917→   917→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+   918→   918→        <Card className="bg-gray-900 border-gray-800">
+   919→   919→          <CardContent className="p-4 text-center">
+   920→   920→            <p className="text-gray-400 text-xs mb-1">Média Diária</p>
+   921→   921→            <p className="text-white text-lg font-bold">8.5K</p>
+   922→   922→            <p className="text-emerald-400 text-xs">reproduções/dia</p>
+   923→   923→          </CardContent>
+   924→   924→        </Card>
+   925→   925→        <Card className="bg-gray-900 border-gray-800">
+   926→   926→          <CardContent className="p-4 text-center">
+   927→   927→            <p className="text-gray-400 text-xs mb-1">Taxa de Retenção</p>
+   928→   928→            <p className="text-white text-lg font-bold">72%</p>
+   929→   929→            <p className="text-emerald-400 text-xs">ouvintes retornam</p>
+   930→   930→          </CardContent>
+   931→   931→        </Card>
+   932→   932→        <Card className="bg-gray-900 border-gray-800">
+   933→   933→          <CardContent className="p-4 text-center">
+   934→   934→            <p className="text-gray-400 text-xs mb-1">Tempo Médio</p>
+   935→   935→            <p className="text-white text-lg font-bold">3:42</p>
+   936→   936→            <p className="text-emerald-400 text-xs">min/música</p>
+   937→   937→          </CardContent>
+   938→   938→        </Card>
+   939→   939→        <Card className="bg-gray-900 border-gray-800">
+   940→   940→          <CardContent className="p-4 text-center">
+   941→   941→            <p className="text-gray-400 text-xs mb-1">Salvos em Playlist</p>
+   942→   942→            <p className="text-white text-lg font-bold">12.4K</p>
+   943→   943→            <p className="text-emerald-400 text-xs">vezes</p>
+   944→   944→          </CardContent>
+   945→   945→        </Card>
+   946→   946→      </div>
+   947→   947→    </div>
+   948→   948→  );
+   949→   949→
+   950→   950→  // ===== FINANCIAL VIEW =====
+   951→   951→
+   952→   952→  const renderFinancial = () => (
+   953→   953→    <div className="space-y-6">
+   954→   954→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   955→   955→        <div>
+   956→   956→          <h2 className="text-white text-xl font-bold">Financeiro</h2>
+   957→   957→          <p className="text-gray-400 text-sm">Acompanhe seus ganhos e saques</p>
+   958→   958→        </div>
+   959→   959→        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+   960→   960→          <Wallet className="w-4 h-4 mr-2" />
+   961→   961→          Solicitar Saque
+   962→   962→        </Button>
+   963→   963→      </div>
+   964→   964→
+   965→   965→      {/* Balance Cards */}
+   966→   966→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   967→   967→        <Card className="bg-gray-900 border-gray-800">
+   968→   968→          <CardContent className="p-4">
+   969→   969→            <div className="flex items-center gap-4">
+   970→   970→              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+   971→   971→                <DollarSign className="w-5 h-5 text-emerald-400" />
+   972→   972→              </div>
+   973→   973→              <div>
+   974→   974→                <p className="text-gray-400 text-xs">Saldo Disponível</p>
+   975→   975→                <p className="text-white text-xl font-bold">{formatCurrency(1346.28)}</p>
+   976→   976→              </div>
+   977→   977→            </div>
+   978→   978→          </CardContent>
+   979→   979→        </Card>
+   980→   980→        <Card className="bg-gray-900 border-gray-800">
+   981→   981→          <CardContent className="p-4">
+   982→   982→            <div className="flex items-center gap-4">
+   983→   983→              <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+   984→   984→                <Clock className="w-5 h-5 text-amber-400" />
+   985→   985→              </div>
+   986→   986→              <div>
+   987→   987→                <p className="text-gray-400 text-xs">Pendente</p>
+   988→   988→                <p className="text-white text-xl font-bold">{formatCurrency(530.50)}</p>
+   989→   989→              </div>
+   990→   990→            </div>
+   991→   991→          </CardContent>
+   992→   992→        </Card>
+   993→   993→        <Card className="bg-gray-900 border-gray-800">
+   994→   994→          <CardContent className="p-4">
+   995→   995→            <div className="flex items-center gap-4">
+   996→   996→              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+   997→   997→                <TrendingUp className="w-5 h-5 text-purple-400" />
+   998→   998→              </div>
+   999→   999→              <div>
+  1000→  1000→                <p className="text-gray-400 text-xs">Total Recebido</p>
+  1001→  1001→                <p className="text-white text-xl font-bold">{formatCurrency(12849.70)}</p>
+  1002→  1002→              </div>
+  1003→  1003→            </div>
+  1004→  1004→          </CardContent>
+  1005→  1005→        </Card>
+  1006→  1006→      </div>
+  1007→  1007→
+  1008→  1008→      {/* Earnings Chart */}
+  1009→  1009→      <Card className="bg-gray-900 border-gray-800">
+  1010→  1010→        <CardHeader className="pb-2">
+  1011→  1011→          <CardTitle className="text-white text-base">Ganhos por Mês</CardTitle>
+  1012→  1012→          <CardDescription className="text-gray-400 text-xs">Receita detalhada por categoria</CardDescription>
+  1013→  1013→        </CardHeader>
+  1014→  1014→        <CardContent className="pt-0">
+  1015→  1015→          <div className="h-72">
+  1016→  1016→            <ResponsiveContainer width="100%" height="100%">
+  1017→  1017→              <BarChart data={mockEarnings} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+  1018→  1018→                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+  1019→  1019→                <XAxis dataKey="month" stroke="#6b7280" fontSize={12} tickLine={false} />
+  1020→  1020→                <YAxis stroke="#6b7280" fontSize={12} tickLine={false} tickFormatter={(v) => `R$${v}`} />
+  1021→  1021→                <Tooltip
+  1022→  1022→                  contentStyle={{
+  1023→  1023→                    backgroundColor: '#111827',
+  1024→  1024→                    border: '1px solid #1f2937',
+  1025→  1025→                    borderRadius: '8px',
+  1026→  1026→                    color: '#f9fafb',
+  1027→  1027→                  }}
+  1028→  1028→                  formatter={(value: number, name: string) => [
+  1029→  1029→                    formatCurrency(value),
+  1030→  1030→                    name === 'streaming' ? 'Streaming' : name === 'downloads' ? 'Downloads' : name === 'live' ? 'Lives' : 'Total',
+  1031→  1031→                  ]}
+  1032→  1032→                />
+  1033→  1033→                <Bar dataKey="streaming" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} maxBarSize={40} />
+  1034→  1034→                <Bar dataKey="downloads" stackId="a" fill="#34d399" radius={[0, 0, 0, 0]} maxBarSize={40} />
+  1035→  1035→                <Bar dataKey="live" stackId="a" fill="#6ee7b7" radius={[4, 4, 0, 0]} maxBarSize={40} />
+  1036→  1036→              </BarChart>
+  1037→  1037→            </ResponsiveContainer>
+  1038→  1038→          </div>
+  1039→  1039→          <div className="flex items-center justify-center gap-6 mt-3">
+  1040→  1040→            <div className="flex items-center gap-2">
+  1041→  1041→              <div className="w-3 h-3 rounded-sm bg-emerald-500" />
+  1042→  1042→              <span className="text-gray-400 text-xs">Streaming</span>
+  1043→  1043→            </div>
+  1044→  1044→            <div className="flex items-center gap-2">
+  1045→  1045→              <div className="w-3 h-3 rounded-sm bg-emerald-300" />
+  1046→  1046→              <span className="text-gray-400 text-xs">Downloads</span>
+  1047→  1047→            </div>
+  1048→  1048→            <div className="flex items-center gap-2">
+  1049→  1049→              <div className="w-3 h-3 rounded-sm bg-emerald-200" />
+  1050→  1050→              <span className="text-gray-400 text-xs">Lives</span>
+  1051→  1051→            </div>
+  1052→  1052→          </div>
+  1053→  1053→        </CardContent>
+  1054→  1054→      </Card>
+  1055→  1055→
+  1056→  1056→      {/* Transactions */}
+  1057→  1057→      <Card className="bg-gray-900 border-gray-800">
+  1058→  1058→        <CardHeader className="pb-2">
+  1059→  1059→          <CardTitle className="text-white text-base">Histórico de Transações</CardTitle>
+  1060→  1060→          <CardDescription className="text-gray-400 text-xs">Últimas movimentações financeiras</CardDescription>
+  1061→  1061→        </CardHeader>
+  1062→  1062→        <CardContent className="pt-0">
+  1063→  1063→          <Table>
+  1064→  1064→            <TableHeader>
+  1065→  1065→              <TableRow className="border-gray-800 hover:bg-transparent">
+  1066→  1066→                <TableHead className="text-gray-400">Descrição</TableHead>
+  1067→  1067→                <TableHead className="text-gray-400">Data</TableHead>
+  1068→  1068→                <TableHead className="text-gray-400">Status</TableHead>
+  1069→  1069→                <TableHead className="text-gray-400 text-right">Valor</TableHead>
+  1070→  1070→              </TableRow>
+  1071→  1071→            </TableHeader>
+  1072→  1072→            <TableBody>
+  1073→  1073→              {mockTransactions.map((tx) => (
+  1074→  1074→                <TableRow key={tx.id} className="border-gray-800">
+  1075→  1075→                  <TableCell>
+  1076→  1076→                    <div className="flex items-center gap-3">
+  1077→  1077→                      <div
+  1078→  1078→                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
+  1079→  1079→                          tx.type === 'credit' ? 'bg-emerald-500/20' : 'bg-red-500/20'
+  1080→  1080→                        }`}
+  1081→  1081→                      >
+  1082→  1082→                        {tx.type === 'credit' ? (
+  1083→  1083→                          <ArrowDownRight className="w-4 h-4 text-emerald-400" />
+  1084→  1084→                        ) : (
+  1085→  1085→                          <ArrowUpRight className="w-4 h-4 text-red-400" />
+  1086→  1086→                        )}
+  1087→  1087→                      </div>
+  1088→  1088→                      <span className="text-white text-sm">{tx.description}</span>
+  1089→  1089→                    </div>
+  1090→  1090→                  </TableCell>
+  1091→  1091→                  <TableCell className="text-gray-300 text-sm">{tx.date}</TableCell>
+  1092→  1092→                  <TableCell>
+  1093→  1093→                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">
+  1094→  1094→                      Concluído
+  1095→  1095→                    </Badge>
+  1096→  1096→                  </TableCell>
+  1097→  1097→                  <TableCell
+  1098→  1098→                    className={`text-right font-medium text-sm ${
+  1099→  1099→                      tx.amount > 0 ? 'text-emerald-400' : 'text-red-400'
+  1100→  1100→                    }`}
+  1101→  1101→                  >
+  1102→  1102→                    {tx.amount > 0 ? '+' : ''}{formatCurrency(Math.abs(tx.amount))}
+  1103→  1103→                  </TableCell>
+  1104→  1104→                </TableRow>
+  1105→  1105→              ))}
+  1106→  1106→            </TableBody>
+  1107→  1107→          </Table>
+  1108→  1108→        </CardContent>
+  1109→  1109→      </Card>
+  1110→  1110→    </div>
+  1111→  1111→  );
+  1112→  1112→
+  1113→  1113→  // ===== ALBUMS VIEW =====
+  1114→  1114→
+  1115→  1115→  const renderAlbums = () => {
+  1116→  1116→    // Group mockSongs by albumName
+  1117→  1117→    const albumMap = new Map<string, { albumName: string; artistName: string; coverUrl: string; songs: typeof mockSongs }>();
+  1118→  1118→    mockSongs.forEach((song) => {
+  1119→  1119→      const key = song.albumName || 'Single';
+  1120→  1120→      if (!albumMap.has(key)) {
+  1121→  1121→        albumMap.set(key, {
+  1122→  1122→          albumName: key,
+  1123→  1123→          artistName: song.artistName,
+  1124→  1124→          coverUrl: song.coverUrl || '',
+  1125→  1125→          songs: [],
+  1126→  1126→        });
+  1127→  1127→      }
+  1128→  1128→      albumMap.get(key)!.songs.push(song);
+  1129→  1129→    });
+  1130→  1130→    const albums = Array.from(albumMap.values());
+  1131→  1131→
+  1132→  1132→    // Show album detail if one is selected
+  1133→  1133→    if (selectedAlbumId) {
+  1134→  1134→      const album = albums.find((a) => a.albumName === selectedAlbumId);
+  1135→  1135→      if (album) {
+  1136→  1136→        return (
+  1137→  1137→          <div className="space-y-6">
+  1138→  1138→            <Button
+  1139→  1139→              variant="ghost"
+  1140→  1140→              size="sm"
+  1141→  1141→              className="text-gray-400 hover:text-white mb-2"
+  1142→  1142→              onClick={() => setSelectedAlbumId(null)}
+  1143→  1143→            >
+  1144→  1144→              ← Voltar aos Álbuns
+  1145→  1145→            </Button>
+  1146→  1146→            <div className="flex flex-col sm:flex-row gap-6">
+  1147→  1147→              <img
+  1148→  1148→                src={album.coverUrl}
+  1149→  1149→                alt={album.albumName}
+  1150→  1150→                className="h-48 w-48 rounded-lg object-cover shrink-0"
+  1151→  1151→              />
+  1152→  1152→              <div>
+  1153→  1153→                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs mb-2">Álbum</Badge>
+  1154→  1154→                <h2 className="text-2xl font-bold text-white">{album.albumName}</h2>
+  1155→  1155→                <p className="text-gray-400 text-sm mt-1">{album.artistName} • {album.songs.length} músicas</p>
+  1156→  1156→              </div>
+  1157→  1157→            </div>
+  1158→  1158→            <Card className="bg-gray-900 border-gray-800">
+  1159→  1159→              <CardContent className="p-0">
+  1160→  1160→                <Table>
+  1161→  1161→                  <TableHeader>
+  1162→  1162→                    <TableRow className="border-gray-800 hover:bg-transparent">
+  1163→  1163→                      <TableHead className="text-gray-400">#</TableHead>
+  1164→  1164→                      <TableHead className="text-gray-400">Título</TableHead>
+  1165→  1165→                      <TableHead className="text-gray-400">Gênero</TableHead>
+  1166→  1166→                      <TableHead className="text-gray-400 text-right">Reproduções</TableHead>
+  1167→  1167→                    </TableRow>
+  1168→  1168→                  </TableHeader>
+  1169→  1169→                  <TableBody>
+  1170→  1170→                    {album.songs.map((song, i) => (
+  1171→  1171→                      <TableRow key={song.id} className="border-gray-800">
+  1172→  1172→                        <TableCell className="text-gray-400 text-sm">{i + 1}</TableCell>
+  1173→  1173→                        <TableCell>
+  1174→  1174→                          <div className="flex items-center gap-3">
+  1175→  1175→                            <img src={song.coverUrl} alt={song.title} className="w-8 h-8 rounded object-cover shrink-0" />
+  1176→  1176→                            <span className="text-white font-medium text-sm">{song.title}</span>
+  1177→  1177→                          </div>
+  1178→  1178→                        </TableCell>
+  1179→  1179→                        <TableCell>
+  1180→  1180→                          <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">{song.genre}</Badge>
+  1181→  1181→                        </TableCell>
+  1182→  1182→                        <TableCell className="text-right text-gray-300 text-sm">{formatPlayCount(song.playCount)}</TableCell>
+  1183→  1183→                      </TableRow>
+  1184→  1184→                    ))}
+  1185→  1185→                  </TableBody>
+  1186→  1186→                </Table>
+  1187→  1187→              </CardContent>
+  1188→  1188→            </Card>
+  1189→  1189→          </div>
+  1190→  1190→        );
+  1191→  1191→      }
+  1192→  1192→    }
+  1193→  1193→
+  1194→  1194→    return (
+  1195→  1195→      <div className="space-y-6">
+  1196→  1196→        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  1197→  1197→          <div>
+  1198→  1198→            <h2 className="text-white text-xl font-bold">Álbuns</h2>
+  1199→  1199→            <p className="text-gray-400 text-sm">Gerencie seus álbuns, EPs e singles</p>
+  1200→  1200→          </div>
+  1201→  1201→          <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+  1202→  1202→            <Plus className="w-4 h-4 mr-2" />
+  1203→  1203→            Criar Álbum
+  1204→  1204→          </Button>
+  1205→  1205→        </div>
+  1206→  1206→        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+  1207→  1207→          {albums.map((album) => (
+  1208→  1208→            <Card
+  1209→  1209→              key={album.albumName}
+  1210→  1210→              className="bg-gray-900 border-gray-800 cursor-pointer hover:border-emerald-500/30 transition-colors"
+  1211→  1211→              onClick={() => setSelectedAlbumId(album.albumName)}
+  1212→  1212→            >
+  1213→  1213→              <CardContent className="p-3">
+  1214→  1214→                <div className="aspect-square overflow-hidden rounded-lg mb-3">
+  1215→  1215→                  <img src={album.coverUrl} alt={album.albumName} className="h-full w-full object-cover" />
+  1216→  1216→                </div>
+  1217→  1217→                <p className="text-white text-sm font-semibold truncate">{album.albumName}</p>
+  1218→  1218→                <p className="text-gray-400 text-xs truncate">{album.artistName}</p>
+  1219→  1219→                <p className="text-gray-500 text-xs mt-1">{album.songs.length} músicas</p>
+  1220→  1220→              </CardContent>
+  1221→  1221→            </Card>
+  1222→  1222→          ))}
+  1223→  1223→        </div>
+  1224→  1224→      </div>
+  1225→  1225→    );
+  1226→  1226→  };
+  1227→  1227→
+  1228→  1228→  // ===== PODCASTS VIEW (CREATOR) =====
+  1229→  1229→
+  1230→  1230→  const renderCreatorPodcasts = () => (
+  1231→  1231→    <div className="space-y-6">
+  1232→  1232→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  1233→  1233→        <div>
+  1234→  1234→          <h2 className="text-white text-xl font-bold">Podcasts</h2>
+  1235→  1235→          <p className="text-gray-400 text-sm">Crie e gerencie seus podcasts e episódios</p>
+  1236→  1236→        </div>
+  1237→  1237→        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+  1238→  1238→          <Plus className="w-4 h-4 mr-2" />
+  1239→  1239→          Novo Episódio
+  1240→  1240→        </Button>
+  1241→  1241→      </div>
+  1242→  1242→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  1243→  1243→        {mockPodcasts.map((podcast) => (
+  1244→  1244→          <Card key={podcast.id} className="bg-gray-900 border-gray-800">
+  1245→  1245→            <CardContent className="p-4">
+  1246→  1246→              <div className="flex items-start gap-4">
+  1247→  1247→                <img src={podcast.coverUrl} alt={podcast.title} className="w-20 h-20 rounded-lg object-cover shrink-0" />
+  1248→  1248→                <div className="min-w-0 flex-1">
+  1249→  1249→                  <p className="text-white font-semibold text-sm truncate">{podcast.title}</p>
+  1250→  1250→                  <p className="text-gray-400 text-xs mt-1 line-clamp-2">{podcast.description}</p>
+  1251→  1251→                  <div className="flex items-center gap-2 mt-2">
+  1252→  1252→                    <Badge variant="outline" className="text-gray-400 border-gray-700 text-xs">{podcast.category}</Badge>
+  1253→  1253→                    {podcast.isExclusive && (
+  1254→  1254→                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">Exclusivo</Badge>
+  1255→  1255→                    )}
+  1256→  1256→                  </div>
+  1257→  1257→                </div>
+  1258→  1258→              </div>
+  1259→  1259→              <div className="flex items-center gap-2 mt-4">
+  1260→  1260→                <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white text-xs">
+  1261→  1261→                  <Play className="w-3 h-3 mr-1" /> Episódios
+  1262→  1262→                </Button>
+  1263→  1263→                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white text-xs">
+  1264→  1264→                  <MoreHorizontal className="w-4 h-4" />
+  1265→  1265→                </Button>
+  1266→  1266→              </div>
+  1267→  1267→            </CardContent>
+  1268→  1268→          </Card>
+  1269→  1269→        ))}
+  1270→  1270→      </div>
+  1271→  1271→    </div>
+  1272→  1272→  );
+  1273→  1273→
+  1274→  1274→  // ===== LIVES VIEW (CREATOR) =====
+  1275→  1275→
+  1276→  1276→  const renderCreatorLives = () => (
+  1277→  1277→    <div className="space-y-6">
+  1278→  1278→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  1279→  1279→        <div>
+  1280→  1280→          <h2 className="text-white text-xl font-bold">Lives</h2>
+  1281→  1281→          <p className="text-gray-400 text-sm">Agende e gerencie transmissões ao vivo</p>
+  1282→  1282→        </div>
+  1283→  1283→        <Button
+  1284→  1284→          className="bg-emerald-500 hover:bg-emerald-600 text-white"
+  1285→  1285→          onClick={() => setShowScheduleLiveModal(true)}
+  1286→  1286→        >
+  1287→  1287→          <Plus className="w-4 h-4 mr-2" />
+  1288→  1288→          Agendar Live
+  1289→  1289→        </Button>
+  1290→  1290→      </div>
+  1291→  1291→
+  1292→  1292→      {/* Schedule Live Modal */}
+  1293→  1293→      {showScheduleLiveModal && (
+  1294→  1294→        <Card className="bg-gray-900 border-emerald-500/30 border">
+  1295→  1295→          <CardHeader className="pb-2">
+  1296→  1296→            <div className="flex items-center justify-between">
+  1297→  1297→              <CardTitle className="text-white text-base">Agendar Live</CardTitle>
+  1298→  1298→              <Button
+  1299→  1299→                variant="ghost"
+  1300→  1300→                size="sm"
+  1301→  1301→                className="text-gray-400 hover:text-white"
+  1302→  1302→                onClick={() => setShowScheduleLiveModal(false)}
+  1303→  1303→              >
+  1304→  1304→                <X className="w-4 h-4" />
+  1305→  1305→              </Button>
+  1306→  1306→            </div>
+  1307→  1307→          </CardHeader>
+  1308→  1308→          <CardContent className="pt-0 space-y-4">
+  1309→  1309→            <div className="space-y-2">
+  1310→  1310→              <Label className="text-gray-300 text-sm">Título da Live</Label>
+  1311→  1311→              <Input
+  1312→  1312→                placeholder="Ex: Show Acústico Especial"
+  1313→  1313→                value={scheduleLiveForm.title}
+  1314→  1314→                onChange={(e) => setScheduleLiveForm({ ...scheduleLiveForm, title: e.target.value })}
+  1315→  1315→                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+  1316→  1316→              />
+  1317→  1317→            </div>
+  1318→  1318→            <div className="space-y-2">
+  1319→  1319→              <Label className="text-gray-300 text-sm">Descrição</Label>
+  1320→  1320→              <Textarea
+  1321→  1321→                placeholder="Do que será a transmissão?"
+  1322→  1322→                value={scheduleLiveForm.description}
+  1323→  1323→                onChange={(e) => setScheduleLiveForm({ ...scheduleLiveForm, description: e.target.value })}
+  1324→  1324→                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500 resize-none"
+  1325→  1325→                rows={3}
+  1326→  1326→              />
+  1327→  1327→            </div>
+  1328→  1328→            <div className="space-y-2">
+  1329→  1329→              <Label className="text-gray-300 text-sm">Data e Hora</Label>
+  1330→  1330→              <Input
+  1331→  1331→                type="datetime-local"
+  1332→  1332→                value={scheduleLiveForm.dateTime}
+  1333→  1333→                onChange={(e) => setScheduleLiveForm({ ...scheduleLiveForm, dateTime: e.target.value })}
+  1334→  1334→                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+  1335→  1335→              />
+  1336→  1336→            </div>
+  1337→  1337→            <div className="flex items-center gap-3">
+  1338→  1338→              <Button
+  1339→  1339→                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+  1340→  1340→                disabled={!scheduleLiveForm.title.trim() || !scheduleLiveForm.dateTime}
+  1341→  1341→                onClick={() => {
+  1342→  1342→                  toast({
+  1343→  1343→                    title: 'Live agendada com sucesso!',
+  1344→  1344→                    description: `"${scheduleLiveForm.title}" foi agendada.`,
+  1345→  1345→                  });
+  1346→  1346→                  setShowScheduleLiveModal(false);
+  1347→  1347→                  setScheduleLiveForm({ title: '', description: '', dateTime: '' });
+  1348→  1348→                }}
+  1349→  1349→              >
+  1350→  1350→                Agendar
+  1351→  1351→              </Button>
+  1352→  1352→              <Button
+  1353→  1353→                variant="ghost"
+  1354→  1354→                className="text-gray-400 hover:text-white"
+  1355→  1355→                onClick={() => setShowScheduleLiveModal(false)}
+  1356→  1356→              >
+  1357→  1357→                Cancelar
+  1358→  1358→              </Button>
+  1359→  1359→            </div>
+  1360→  1360→          </CardContent>
+  1361→  1361→        </Card>
+  1362→  1362→      )}
+  1363→  1363→
+  1364→  1364→      {/* Lives List */}
+  1365→  1365→      <div className="space-y-4">
+  1366→  1366→        {mockLiveStreams.map((stream) => (
+  1367→  1367→          <Card key={stream.id} className="bg-gray-900 border-gray-800">
+  1368→  1368→            <CardContent className="p-4">
+  1369→  1369→              <div className="flex items-center gap-4">
+  1370→  1370→                <img src={stream.thumbnail} alt={stream.title} className="w-24 h-16 rounded-lg object-cover shrink-0" />
+  1371→  1371→                <div className="flex-1 min-w-0">
+  1372→  1372→                  <div className="flex items-center gap-2">
+  1373→  1373→                    <p className="text-white font-semibold text-sm truncate">{stream.title}</p>
+  1374→  1374→                    {stream.isLive && (
+  1375→  1375→                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs shrink-0">AO VIVO</Badge>
+  1376→  1376→                    )}
+  1377→  1377→                    {stream.isScheduled && (
+  1378→  1378→                      <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs shrink-0">Agendada</Badge>
+  1379→  1379→                    )}
+  1380→  1380→                  </div>
+  1381→  1381→                  <p className="text-gray-400 text-xs mt-1">{stream.artistName}</p>
+  1382→  1382→                  <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
+  1383→  1383→                    {stream.isLive && (
+  1384→  1384→                      <span className="flex items-center gap-1">
+  1385→  1385→                        <Eye className="w-3 h-3" /> {formatPlayCount(stream.viewerCount)} assistindo
+  1386→  1386→                      </span>
+  1387→  1387→                    )}
+  1388→  1388→                    {stream.isScheduled && stream.scheduledAt && (
+  1389→  1389→                      <span className="flex items-center gap-1">
+  1390→  1390→                        <Calendar className="w-3 h-3" /> {new Date(stream.scheduledAt).toLocaleString('pt-BR')}
+  1391→  1391→                      </span>
+  1392→  1392→                    )}
+  1393→  1393→                  </div>
+  1394→  1394→                </div>
+  1395→  1395→                <div className="flex items-center gap-2 shrink-0">
+  1396→  1396→                  {stream.isLive ? (
+  1397→  1397→                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs">
+  1398→  1398→                      <Radio className="w-3 h-3 mr-1" /> Encerrar
+  1399→  1399→                    </Button>
+  1400→  1400→                  ) : (
+  1401→  1401→                    <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white text-xs">
+  1402→  1402→                      <MoreHorizontal className="w-3 h-3" />
+  1403→  1403→                    </Button>
+  1404→  1404→                  )}
+  1405→  1405→                </div>
+  1406→  1406→              </div>
+  1407→  1407→            </CardContent>
+  1408→  1408→          </Card>
+  1409→  1409→        ))}
+  1410→  1410→      </div>
+  1411→  1411→    </div>
+  1412→  1412→  );
+  1413→  1413→
+  1414→  1414→  // ===== PLACEHOLDER VIEW =====
+  1415→  1415→
+  1416→  1416→  const renderPlaceholder = (title: string, description: string, icon: React.ElementType) => {
+  1417→  1417→    const Icon = icon;
+  1418→  1418→    return (
+  1419→  1419→      <div className="flex flex-col items-center justify-center h-96 text-center">
+  1420→  1420→        <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center mb-4">
+  1421→  1421→          <Icon className="w-8 h-8 text-emerald-400" />
+  1422→  1422→        </div>
+  1423→  1423→        <h2 className="text-white text-xl font-bold mb-2">{title}</h2>
+  1424→  1424→        <p className="text-gray-400 text-sm max-w-md">{description}</p>
+  1425→  1425→        <Button className="mt-6 bg-emerald-500 hover:bg-emerald-600 text-white">
+  1426→  1426→          Em breve
+  1427→  1427→        </Button>
+  1428→  1428→      </div>
+  1429→  1429→    );
+  1430→  1430→  };
+  1431→  1431→
+  1432→  1432→  // ===== RENDER ACTIVE VIEW =====
+  1433→  1433→
+  1434→  1434→  const renderActiveView = () => {
+  1435→  1435→    switch (activeView) {
+  1436→  1436→      case 'dashboard':
+  1437→  1437→        return renderDashboard();
+  1438→  1438→      case 'music':
+  1439→  1439→        return renderMusic();
+  1440→  1440→      case 'albums':
+  1441→  1441→        return renderAlbums();
+  1442→  1442→      case 'podcasts':
+  1443→  1443→        return renderCreatorPodcasts();
+  1444→  1444→      case 'lives':
+  1445→  1445→        return renderCreatorLives();
+  1446→  1446→      case 'analytics':
+  1447→  1447→        return renderAnalytics();
+  1448→  1448→      case 'financial':
+  1449→  1449→        return renderFinancial();
+  1450→  1450→      case 'settings':
+  1451→  1451→        return renderPlaceholder(
+  1452→  1452→          'Configurações',
+  1453→  1453→          'Configure seu perfil de criador, integrações bancárias e preferências de notificação.',
+  1454→  1454→          Settings
+  1455→  1455→        );
+  1456→  1456→      default:
+  1457→  1457→        return renderDashboard();
+  1458→  1458→    }
+  1459→  1459→  };
+  1460→  1460→
+  1461→  1461→  // ===== MAIN RENDER =====
+  1462→  1462→
+  1463→  1463→  return (
+  1464→  1464→    <div className="flex h-full min-h-screen bg-gray-950">
+  1465→  1465→      {/* Sidebar */}
+  1466→  1466→      {renderSidebar()}
+  1467→  1467→
+  1468→  1468→      {/* Main Content */}
+  1469→  1469→      <main className="flex-1 flex flex-col overflow-hidden">
+  1470→  1470→        {/* Header */}
+  1471→  1471→        <header className="h-14 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm flex items-center justify-between px-6 flex-shrink-0">
+  1472→  1472→          <div className="flex items-center gap-4">
+  1473→  1473→            <h2 className="text-white font-semibold">
+  1474→  1474→              {creatorNavItems.find((i) => i.id === activeView)?.label || 'Dashboard'}
+  1475→  1475→            </h2>
+  1476→  1476→          </div>
+  1477→  1477→          <div className="flex items-center gap-3">
+  1478→  1478→            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white hover:bg-gray-800 relative">
+  1479→  1479→              <Bell className="w-4 h-4" />
+  1480→  1480→              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full" />
+  1481→  1481→            </Button>
+  1482→  1482→            <Avatar className="w-8 h-8">
+  1483→  1483→              <AvatarFallback className="bg-emerald-500 text-white text-xs">LM</AvatarFallback>
+  1484→  1484→            </Avatar>
+  1485→  1485→          </div>
+  1486→  1486→        </header>
+  1487→  1487→
+  1488→  1488→        {/* Content */}
+  1489→  1489→        <div className="flex-1 overflow-y-auto p-6">
+  1490→  1490→          {renderActiveView()}
+  1491→  1491→        </div>
+  1492→  1492→      </main>
+  1493→  1493→    </div>
+  1494→  1494→  );
+  1495→  1495→}
+  1496→  1496→

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   LayoutDashboard,
   Music,
@@ -37,6 +37,9 @@ import {
   X,
   Calendar,
   Eye,
+  Loader2,
+  Mic,
+  StopCircle,
 } from 'lucide-react';
 import {
   LineChart,
@@ -155,10 +158,259 @@ export default function CreatorPanel() {
     album: '',
     coverFile: null as File | null,
     audioFile: null as File | null,
+    coverUrl: '',
+    audioUrl: '',
+    coverUploading: false,
+    audioUploading: false,
+    submitting: false,
   });
   const { toast } = useToast();
 
+  // Lives state
+  const [activeLive, setActiveLive] = useState<any>(null);
+  const [showStartLiveModal, setShowStartLiveModal] = useState(false);
+  const [startLiveForm, setStartLiveForm] = useState({ title: '', description: '' });
+  const [startingLive, setStartingLive] = useState(false);
+  const [endingLive, setEndingLive] = useState(false);
+  const [dbLives, setDbLives] = useState<any[]>([]);
+  const [loadingLives, setLoadingLives] = useState(false);
+
+  // Podcast state
+  const [showNewEpisodeModal, setShowNewEpisodeModal] = useState(false);
+  const [episodeForm, setEpisodeForm] = useState({
+    podcastId: '',
+    title: '',
+    description: '',
+    audioFile: null as File | null,
+    audioUrl: '',
+    audioUploading: false,
+    submitting: false,
+  });
+
+  // File input refs
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const podcastAudioInputRef = useRef<HTMLInputElement>(null);
+
   const data = creatorAnalytics;
+
+  // ===== UPLOAD FILE FUNCTION =====
+
+  const uploadFile = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        return data.url;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  // ===== FILE SELECT HANDLERS =====
+
+  const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadForm((prev) => ({ ...prev, coverFile: file, coverUploading: true, coverUrl: '' }));
+    const url = await uploadFile(file);
+    if (url) {
+      setUploadForm((prev) => ({ ...prev, coverUrl: url, coverUploading: false }));
+      toast({ title: 'Capa enviada!', description: file.name });
+    } else {
+      setUploadForm((prev) => ({ ...prev, coverUploading: false }));
+      toast({ title: 'Erro', description: 'Falha ao enviar capa', variant: 'destructive' });
+    }
+  };
+
+  const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadForm((prev) => ({ ...prev, audioFile: file, audioUploading: true, audioUrl: '' }));
+    const url = await uploadFile(file);
+    if (url) {
+      setUploadForm((prev) => ({ ...prev, audioUrl: url, audioUploading: false }));
+      toast({ title: 'Áudio enviado!', description: file.name });
+    } else {
+      setUploadForm((prev) => ({ ...prev, audioUploading: false }));
+      toast({ title: 'Erro', description: 'Falha ao enviar áudio', variant: 'destructive' });
+    }
+  };
+
+  // ===== SUBMIT MUSIC =====
+
+  const handleSubmitMusic = async () => {
+    if (!uploadForm.title.trim()) {
+      toast({ title: 'Campo obrigatório', description: 'Informe o título da música', variant: 'destructive' });
+      return;
+    }
+    if (!uploadForm.audioUrl) {
+      toast({ title: 'Campo obrigatório', description: 'Envie o arquivo de áudio', variant: 'destructive' });
+      return;
+    }
+    setUploadForm((prev) => ({ ...prev, submitting: true }));
+    try {
+      const res = await fetch('/api/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: uploadForm.title,
+          genre: uploadForm.genre,
+          album: uploadForm.album,
+          coverUrl: uploadForm.coverUrl,
+          audioUrl: uploadForm.audioUrl,
+          artistId: 'a1',
+        }),
+      });
+      if (res.ok) {
+        toast({ title: 'Música enviada!', description: `"${uploadForm.title}" foi enviada para revisão.` });
+        setShowUploadModal(false);
+        setUploadForm({
+          title: '',
+          genre: '',
+          album: '',
+          coverFile: null,
+          audioFile: null,
+          coverUrl: '',
+          audioUrl: '',
+          coverUploading: false,
+          audioUploading: false,
+          submitting: false,
+        });
+      } else {
+        const errData = await res.json();
+        toast({ title: 'Erro', description: errData.error || 'Falha ao enviar música', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao enviar música', variant: 'destructive' });
+    }
+    setUploadForm((prev) => ({ ...prev, submitting: false }));
+  };
+
+  // ===== LIVE STREAM FUNCTIONS =====
+
+  const loadLives = async () => {
+    setLoadingLives(true);
+    try {
+      const res = await fetch('/api/lives/list?artistId=a1');
+      if (res.ok) {
+        const data = await res.json();
+        setDbLives(data.liveStreams || []);
+        setActiveLive(data.activeLive || null);
+      }
+    } catch {
+      // silently fail
+    }
+    setLoadingLives(false);
+  };
+
+  useEffect(() => {
+    const fetchLives = async () => {
+      setLoadingLives(true);
+      try {
+        const res = await fetch('/api/lives/list?artistId=a1');
+        if (res.ok) {
+          const data = await res.json();
+          setDbLives(data.liveStreams || []);
+          setActiveLive(data.activeLive || null);
+        }
+      } catch {
+        // silently fail
+      }
+      setLoadingLives(false);
+    };
+    fetchLives();
+  }, []);
+
+  const handleStartLive = async () => {
+    setStartingLive(true);
+    try {
+      const res = await fetch('/api/lives/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artistId: 'a1', title: startLiveForm.title, description: startLiveForm.description }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveLive(data.liveStream);
+        setShowStartLiveModal(false);
+        setStartLiveForm({ title: '', description: '' });
+        toast({ title: 'Live iniciada!', description: 'Sua transmissão está ao vivo.' });
+        loadLives();
+      } else {
+        const data = await res.json();
+        toast({ title: 'Erro', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao iniciar live', variant: 'destructive' });
+    }
+    setStartingLive(false);
+  };
+
+  const handleEndLive = async () => {
+    if (!activeLive) return;
+    setEndingLive(true);
+    try {
+      const res = await fetch('/api/lives/end', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ liveId: activeLive.id }),
+      });
+      if (res.ok) {
+        setActiveLive(null);
+        toast({ title: 'Live encerrada', description: 'Sua transmissão foi encerrada.' });
+        loadLives();
+      } else {
+        const data = await res.json();
+        toast({ title: 'Erro', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao encerrar live', variant: 'destructive' });
+    }
+    setEndingLive(false);
+  };
+
+  // ===== PODCAST EPISODE HANDLERS =====
+
+  const handlePodcastAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEpisodeForm((prev) => ({ ...prev, audioFile: file, audioUploading: true, audioUrl: '' }));
+    const url = await uploadFile(file);
+    if (url) {
+      setEpisodeForm((prev) => ({ ...prev, audioUrl: url, audioUploading: false }));
+      toast({ title: 'Áudio enviado!', description: file.name });
+    } else {
+      setEpisodeForm((prev) => ({ ...prev, audioUploading: false }));
+      toast({ title: 'Erro', description: 'Falha ao enviar áudio do episódio', variant: 'destructive' });
+    }
+  };
+
+  const handleSubmitEpisode = () => {
+    if (!episodeForm.title.trim()) {
+      toast({ title: 'Campo obrigatório', description: 'Informe o título do episódio', variant: 'destructive' });
+      return;
+    }
+    if (!episodeForm.audioUrl) {
+      toast({ title: 'Campo obrigatório', description: 'Envie o arquivo de áudio', variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Episódio criado!', description: `"${episodeForm.title}" foi adicionado ao podcast.` });
+    setShowNewEpisodeModal(false);
+    setEpisodeForm({
+      podcastId: '',
+      title: '',
+      description: '',
+      audioFile: null,
+      audioUrl: '',
+      audioUploading: false,
+      submitting: false,
+    });
+  };
 
   // ===== STAT CARDS =====
 
@@ -679,28 +931,91 @@ export default function CreatorPanel() {
               {/* Cover Upload */}
               <div className="space-y-2">
                 <Label className="text-gray-300 text-sm">Capa do Álbum</Label>
-                <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer">
-                  <ImagePlus className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                  <p className="text-gray-400 text-sm">Clique para enviar a capa</p>
-                  <p className="text-gray-500 text-xs mt-1">JPG, PNG até 5MB</p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={coverInputRef}
+                  className="hidden"
+                  onChange={handleCoverSelect}
+                />
+                <div
+                  className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer"
+                  onClick={() => coverInputRef.current?.click()}
+                >
+                  {uploadForm.coverUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+                      <p className="text-emerald-400 text-sm">Enviando capa...</p>
+                    </div>
+                  ) : uploadForm.coverFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                      <p className="text-emerald-400 text-sm">{uploadForm.coverFile.name}</p>
+                      <p className="text-gray-500 text-xs">Clique para trocar</p>
+                    </div>
+                  ) : (
+                    <>
+                      <ImagePlus className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                      <p className="text-gray-400 text-sm">Clique para enviar a capa</p>
+                      <p className="text-gray-500 text-xs mt-1">JPG, PNG até 5MB</p>
+                    </>
+                  )}
                 </div>
               </div>
 
               {/* Audio Upload */}
               <div className="space-y-2">
                 <Label className="text-gray-300 text-sm">Arquivo de Áudio</Label>
-                <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer">
-                  <FileAudio className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                  <p className="text-gray-400 text-sm">Clique para enviar o áudio</p>
-                  <p className="text-gray-500 text-xs mt-1">MP3, WAV, FLAC até 50MB</p>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  ref={audioInputRef}
+                  className="hidden"
+                  onChange={handleAudioSelect}
+                />
+                <div
+                  className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer"
+                  onClick={() => audioInputRef.current?.click()}
+                >
+                  {uploadForm.audioUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+                      <p className="text-emerald-400 text-sm">Enviando áudio...</p>
+                    </div>
+                  ) : uploadForm.audioFile ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                      <p className="text-emerald-400 text-sm">{uploadForm.audioFile.name}</p>
+                      <p className="text-gray-500 text-xs">Clique para trocar</p>
+                    </div>
+                  ) : (
+                    <>
+                      <FileAudio className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                      <p className="text-gray-400 text-sm">Clique para enviar o áudio</p>
+                      <p className="text-gray-500 text-xs mt-1">MP3, WAV, FLAC até 50MB</p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-3 pt-2">
-              <Button className="bg-emerald-500 hover:bg-emerald-600 text-white flex-1 sm:flex-none">
-                <Upload className="w-4 h-4 mr-2" />
-                Enviar Música
+              <Button
+                className="bg-emerald-500 hover:bg-emerald-600 text-white flex-1 sm:flex-none"
+                disabled={uploadForm.submitting || uploadForm.coverUploading || uploadForm.audioUploading}
+                onClick={handleSubmitMusic}
+              >
+                {uploadForm.submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Enviar Música
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -1234,11 +1549,117 @@ export default function CreatorPanel() {
           <h2 className="text-white text-xl font-bold">Podcasts</h2>
           <p className="text-gray-400 text-sm">Crie e gerencie seus podcasts e episódios</p>
         </div>
-        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
+        <Button
+          className="bg-emerald-500 hover:bg-emerald-600 text-white"
+          onClick={() => setShowNewEpisodeModal(true)}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Novo Episódio
         </Button>
       </div>
+
+      {/* New Episode Modal */}
+      {showNewEpisodeModal && (
+        <Card className="bg-gray-900 border-emerald-500/30 border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-white text-base">Novo Episódio</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                onClick={() => setShowNewEpisodeModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <CardDescription className="text-gray-400 text-xs">
+              Adicione um novo episódio ao seu podcast
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Título do Episódio</Label>
+              <Input
+                placeholder="Ex: Entrevista com artista especial"
+                value={episodeForm.title}
+                onChange={(e) => setEpisodeForm({ ...episodeForm, title: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Descrição</Label>
+              <Textarea
+                placeholder="Do que se trata este episódio?"
+                value={episodeForm.description}
+                onChange={(e) => setEpisodeForm({ ...episodeForm, description: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500 resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Arquivo de Áudio</Label>
+              <input
+                type="file"
+                accept="audio/*"
+                ref={podcastAudioInputRef}
+                className="hidden"
+                onChange={handlePodcastAudioSelect}
+              />
+              <div
+                className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer"
+                onClick={() => podcastAudioInputRef.current?.click()}
+              >
+                {episodeForm.audioUploading ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+                    <p className="text-emerald-400 text-sm">Enviando áudio...</p>
+                  </div>
+                ) : episodeForm.audioFile ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                    <p className="text-emerald-400 text-sm">{episodeForm.audioFile.name}</p>
+                    <p className="text-gray-500 text-xs">Clique para trocar</p>
+                  </div>
+                ) : (
+                  <>
+                    <FileAudio className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm">Clique para enviar o áudio</p>
+                    <p className="text-gray-500 text-xs mt-1">MP3, WAV, FLAC até 50MB</p>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <Button
+                className="bg-emerald-500 hover:bg-emerald-600 text-white flex-1 sm:flex-none"
+                disabled={episodeForm.submitting || episodeForm.audioUploading}
+                onClick={handleSubmitEpisode}
+              >
+                {episodeForm.submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Criar Episódio
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white flex-1 sm:flex-none"
+                onClick={() => setShowNewEpisodeModal(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {mockPodcasts.map((podcast) => (
           <Card key={podcast.id} className="bg-gray-900 border-gray-800">
@@ -1278,16 +1699,99 @@ export default function CreatorPanel() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-white text-xl font-bold">Lives</h2>
-          <p className="text-gray-400 text-sm">Agende e gerencie transmissões ao vivo</p>
+          <p className="text-gray-400 text-sm">Gerencie transmissões ao vivo</p>
         </div>
-        <Button
-          className="bg-emerald-500 hover:bg-emerald-600 text-white"
-          onClick={() => setShowScheduleLiveModal(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Agendar Live
-        </Button>
+        <div className="flex items-center gap-2">
+          {!activeLive && (
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={() => setShowStartLiveModal(true)}
+            >
+              <Activity className="w-4 h-4 mr-2" />
+              Iniciar Live
+            </Button>
+          )}
+          <Button
+            className="bg-emerald-500 hover:bg-emerald-600 text-white"
+            onClick={() => setShowScheduleLiveModal(true)}
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Agendar Live
+          </Button>
+        </div>
       </div>
+
+      {/* Start Live Modal */}
+      {showStartLiveModal && (
+        <Card className="bg-gray-900 border-red-500/30 border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-red-400" />
+                <CardTitle className="text-white text-base">Iniciar Live</CardTitle>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white"
+                onClick={() => setShowStartLiveModal(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <CardDescription className="text-gray-400 text-xs">
+              Comece uma transmissão ao vivo agora
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Título da Live</Label>
+              <Input
+                placeholder="Ex: Show Acústico Ao Vivo"
+                value={startLiveForm.title}
+                onChange={(e) => setStartLiveForm({ ...startLiveForm, title: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-sm">Descrição</Label>
+              <Textarea
+                placeholder="Do que será a transmissão?"
+                value={startLiveForm.description}
+                onChange={(e) => setStartLiveForm({ ...startLiveForm, description: e.target.value })}
+                className="bg-gray-800 border-gray-700 text-white placeholder-gray-500 resize-none"
+                rows={3}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={!startLiveForm.title.trim() || startingLive}
+                onClick={handleStartLive}
+              >
+                {startingLive ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Iniciando...
+                  </>
+                ) : (
+                  <>
+                    <Activity className="w-4 h-4 mr-2" />
+                    Iniciar Agora
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-gray-400 hover:text-white"
+                onClick={() => setShowStartLiveModal(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Schedule Live Modal */}
       {showScheduleLiveModal && (
@@ -1361,10 +1865,121 @@ export default function CreatorPanel() {
         </Card>
       )}
 
-      {/* Lives List */}
-      <div className="space-y-4">
+      {/* Active Live Stream */}
+      {activeLive && (
+        <Card className="bg-gray-900 border-red-500/50 border overflow-hidden">
+          <div className="bg-red-600/10 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-16 h-16 rounded-lg bg-red-600/20 flex items-center justify-center shrink-0">
+                  <Radio className="w-8 h-8 text-red-400" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-white font-bold text-lg truncate">{activeLive.title}</p>
+                    <Badge className="bg-red-600 text-white border-red-700 text-xs shrink-0 animate-pulse">
+                      AO VIVO
+                    </Badge>
+                  </div>
+                  {activeLive.description && (
+                    <p className="text-gray-400 text-sm mt-1 truncate">{activeLive.description}</p>
+                  )}
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="flex items-center gap-1 text-red-400 text-sm">
+                      <Eye className="w-4 h-4" />
+                      {activeLive.viewerCount || 0} assistindo
+                    </span>
+                    <span className="text-gray-500 text-xs">
+                      Iniciada em {activeLive.startedAt ? new Date(activeLive.startedAt).toLocaleTimeString('pt-BR') : 'agora'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white shrink-0"
+                disabled={endingLive}
+                onClick={handleEndLive}
+              >
+                {endingLive ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Encerrando...
+                  </>
+                ) : (
+                  <>
+                    <StopCircle className="w-4 h-4 mr-2" />
+                    Encerrar Live
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Past Lives from Database */}
+      {dbLives.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-white font-semibold text-sm flex items-center gap-2">
+            <Mic className="w-4 h-4 text-emerald-400" />
+            Histórico de Lives
+          </h3>
+          {loadingLives ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" />
+            </div>
+          ) : (
+            dbLives
+              .filter((live: any) => !live.isLive)
+              .map((live: any) => (
+                <Card key={live.id} className="bg-gray-900 border-gray-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center shrink-0">
+                        {live.endedAt ? (
+                          <StopCircle className="w-5 h-5 text-gray-500" />
+                        ) : (
+                          <Calendar className="w-5 h-5 text-amber-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-white font-semibold text-sm truncate">{live.title}</p>
+                          {live.isLive ? (
+                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs shrink-0">AO VIVO</Badge>
+                          ) : live.endedAt ? (
+                            <Badge className="bg-gray-700 text-gray-400 border-gray-600 text-xs shrink-0">Encerrada</Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs shrink-0">Agendada</Badge>
+                          )}
+                        </div>
+                        {live.description && (
+                          <p className="text-gray-400 text-xs mt-1 truncate">{live.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                          {live.startedAt && (
+                            <span>Início: {new Date(live.startedAt).toLocaleString('pt-BR')}</span>
+                          )}
+                          {live.viewerCount > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Eye className="w-3 h-3" /> {live.viewerCount} espectadores
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+          )}
+        </div>
+      )}
+
+      {/* Mock Lives for Examples */}
+      <div className="space-y-3">
+        <h3 className="text-white font-semibold text-sm text-gray-400">Exemplos de Lives</h3>
         {mockLiveStreams.map((stream) => (
-          <Card key={stream.id} className="bg-gray-900 border-gray-800">
+          <Card key={stream.id} className="bg-gray-900 border-gray-800 opacity-70">
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <img src={stream.thumbnail} alt={stream.title} className="w-24 h-16 rounded-lg object-cover shrink-0" />
@@ -1391,17 +2006,6 @@ export default function CreatorPanel() {
                       </span>
                     )}
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {stream.isLive ? (
-                    <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white text-xs">
-                      <Radio className="w-3 h-3 mr-1" /> Encerrar
-                    </Button>
-                  ) : (
-                    <Button variant="outline" size="sm" className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white text-xs">
-                      <MoreHorizontal className="w-3 h-3" />
-                    </Button>
-                  )}
                 </div>
               </div>
             </CardContent>

@@ -1,0 +1,1058 @@
+     1→     1→'use client';
+     2→     2→
+     3→     3→import { useMemo, useEffect, useCallback, useState, useRef } from 'react';
+     4→     4→import { AnimatePresence, motion } from 'framer-motion';
+     5→     5→import {
+     6→     6→  Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
+     7→     7→  Volume2, VolumeX, Heart, Music2, Maximize2, ChevronDown,
+     8→     8→  Mic2, ListMusic, ChevronUp, X, Plus, Radio, Megaphone, Headphones,
+     9→     9→  Upload, Clock, Calendar, Bell, Crown, Loader2,
+    10→    10→} from 'lucide-react';
+    11→    11→import { Button } from '@/components/ui/button';
+    12→    12→import { Slider } from '@/components/ui/slider';
+    13→    13→import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+    14→    14→import { Badge } from '@/components/ui/badge';
+    15→    15→import { Input } from '@/components/ui/input';
+    16→    16→import { useAppStore, usePlayerStore } from '@/stores/app-store';
+    17→    17→import { formatDuration, formatPlayCount } from '@/lib/asaas';
+    18→    18→import { mockLiveStreams, mockPodcasts, mockPlaylists, mockSongs } from '@/lib/mock-data';
+    19→    19→import type { UserType, PodcastEpisodeType } from '@/types';
+    20→    20→
+    21→    21→import LandingPage from '@/components/landing/LandingPage';
+    22→    22→import AuthModal from '@/components/landing/AuthModal';
+    23→    23→import Sidebar from '@/components/app/Sidebar';
+    24→    24→import HomeView from '@/components/app/HomeView';
+    25→    25→import SearchView from '@/components/app/SearchView';
+    26→    26→import LibraryView from '@/components/app/LibraryView';
+    27→    27→import PremiumView from '@/components/app/PremiumView';
+    28→    28→import PlaylistView from '@/components/app/PlaylistView';
+    29→    29→import ArtistView from '@/components/app/ArtistView';
+    30→    30→import AdminPanel from '@/components/admin/AdminPanel';
+    31→    31→import CreatorPanel from '@/components/creator/CreatorPanel';
+    32→    32→
+    33→    33→// ===== DEMO USERS =====
+    34→    34→const DEMO_USERS: Record<string, UserType> = {
+    35→    35→  user: {
+    36→    36→    id: 'u1',
+    37→    37→    email: 'user@soundflow.com',
+    38→    38→    name: 'Usuário Demo',
+    39→    39→    username: 'user_demo',
+    40→    40→    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop',
+    41→    41→    role: 'free',
+    42→    42→    plan: 'free',
+    43→    43→    isVerified: true,
+    44→    44→    isActive: true,
+    45→    45→    createdAt: new Date().toISOString(),
+    46→    46→  },
+    47→    47→  admin: {
+    48→    48→    id: 'u_admin',
+    49→    49→    email: 'admin@soundflow.com',
+    50→    50→    name: 'Admin SoundFlow',
+    51→    51→    username: 'admin_soundflow',
+    52→    52→    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+    53→    53→    role: 'admin',
+    54→    54→    plan: 'premium_individual',
+    55→    55→    isVerified: true,
+    56→    56→    isActive: true,
+    57→    57→    createdAt: new Date().toISOString(),
+    58→    58→  },
+    59→    59→};
+    60→    60→
+    61→    61→// ===== ROLE PERMISSIONS =====
+    62→    62→export const ROLE_PERMISSIONS: Record<string, string[]> = {
+    63→    63→  free: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile'],
+    64→    64→  premium: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile'],
+    65→    65→  creator: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile', 'creator'],
+    66→    66→  moderator: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile', 'admin'],
+    67→    67→  admin: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile', 'admin', 'creator'],
+    68→    68→};
+    69→    69→
+    70→    70→function canAccess(role: string, view: string): boolean {
+    71→    71→  const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.free;
+    72→    72→  return permissions.includes(view);
+    73→    73→}
+    74→    74→
+    75→    75→// ===== MINI PLAYER BAR =====
+    76→    76→function MiniPlayerBar() {
+    77→    77→  const { currentSong, isPlaying, togglePlay, togglePlayerMinimized } = usePlayerStore();
+    78→    78→
+    79→    79→  if (!currentSong) return null;
+    80→    80→
+    81→    81→  return (
+    82→    82→    <div className="fixed bottom-0 right-0 z-50 h-10 border-t border-white/5 bg-gray-950/95 backdrop-blur-xl flex items-center px-3 gap-3 lg:left-64 left-0">
+    83→    83→      <Avatar className="h-7 w-7 rounded shrink-0">
+    84→    84→        <AvatarImage src={currentSong.coverUrl} alt={currentSong.title} />
+    85→    85→        <AvatarFallback className="bg-emerald-700 text-white rounded">
+    86→    86→          <Music2 className="h-3.5 w-3.5" />
+    87→    87→        </AvatarFallback>
+    88→    88→      </Avatar>
+    89→    89→      <div className="min-w-0 flex-1">
+    90→    90→        <p className="text-xs font-medium text-white truncate">{currentSong.title}</p>
+    91→    91→        <p className="text-[10px] text-gray-400 truncate">{currentSong.artistName}</p>
+    92→    92→      </div>
+    93→    93→      <Button
+    94→    94→        size="icon"
+    95→    95→        className="h-7 w-7 rounded-full bg-white text-gray-900 hover:scale-105 transition-transform"
+    96→    96→        onClick={togglePlay}
+    97→    97→      >
+    98→    98→        {isPlaying ? <Pause className="h-3.5 w-3.5" fill="currentColor" /> : <Play className="h-3.5 w-3.5 ml-0.5" fill="currentColor" />}
+    99→    99→      </Button>
+   100→   100→      <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-white" onClick={togglePlayerMinimized}>
+   101→   101→        <ChevronUp className="h-4 w-4" />
+   102→   102→      </Button>
+   103→   103→    </div>
+   104→   104→  );
+   105→   105→}
+   106→   106→
+   107→   107→// ===== PLAYER BAR =====
+   108→   108→function PlayerBar() {
+   109→   109→  const {
+   110→   110→    currentSong, isPlaying, togglePlay, nextSong, prevSong,
+   111→   111→    progress, duration, volume, shuffle, repeat, isMuted,
+   112→   112→    toggleShuffle, toggleRepeat, toggleMute, setVolume, setProgress,
+   113→   113→    showFullPlayer, setShowFullPlayer, playerMinimized, togglePlayerMinimized, clearPlayer,
+   114→   114→  } = usePlayerStore();
+   115→   115→
+   116→   116→  if (!currentSong) return null;
+   117→   117→
+   118→   118→  // Show mini player when minimized
+   119→   119→  if (playerMinimized) {
+   120→   120→    return <MiniPlayerBar />;
+   121→   121→  }
+   122→   122→
+   123→   123→  const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
+   124→   124→
+   125→   125→  return (
+   126→   126→    <div className="fixed bottom-0 right-0 z-50 border-t border-white/5 bg-gray-950/95 backdrop-blur-xl lg:left-64 left-0">
+   127→   127→      <div
+   128→   128→        className="h-1 w-full bg-gray-800 cursor-pointer group"
+   129→   129→        onClick={(e) => {
+   130→   130→          const rect = e.currentTarget.getBoundingClientRect();
+   131→   131→          const percent = (e.clientX - rect.left) / rect.width;
+   132→   132→          setProgress(percent * duration);
+   133→   133→        }}
+   134→   134→      >
+   135→   135→        <div
+   136→   136→          className="h-full bg-emerald-500 transition-all group-hover:bg-emerald-400"
+   137→   137→          style={{ width: `${progressPercent}%` }}
+   138→   138→        />
+   139→   139→      </div>
+   140→   140→
+   141→   141→      <div className="flex items-center h-[72px] px-3 sm:px-4">
+   142→   142→        <div className="flex items-center gap-3 w-[30%] min-w-0">
+   143→   143→          <Avatar className="h-12 w-12 rounded-md shrink-0">
+   144→   144→            <AvatarImage src={currentSong.coverUrl} alt={currentSong.title} />
+   145→   145→            <AvatarFallback className="bg-emerald-700 text-white rounded-md">
+   146→   146→              <Music2 className="h-5 w-5" />
+   147→   147→            </AvatarFallback>
+   148→   148→          </Avatar>
+   149→   149→          <div className="min-w-0 hidden sm:block">
+   150→   150→            <p className="text-sm font-medium text-white truncate">{currentSong.title}</p>
+   151→   151→            <p className="text-xs text-gray-400 truncate">{currentSong.artistName}</p>
+   152→   152→          </div>
+   153→   153→          <Button
+   154→   154→            variant="ghost"
+   155→   155→            size="icon"
+   156→   156→            className={`h-8 w-8 shrink-0 hidden sm:flex ${currentSong.isLiked ? 'text-emerald-400' : 'text-gray-400 hover:text-white'}`}
+   157→   157→          >
+   158→   158→            <Heart className={`h-4 w-4 ${currentSong.isLiked ? 'fill-emerald-400' : ''}`} />
+   159→   159→          </Button>
+   160→   160→        </div>
+   161→   161→
+   162→   162→        <div className="flex flex-col items-center gap-1 w-[40%]">
+   163→   163→          <div className="flex items-center gap-1 sm:gap-2">
+   164→   164→            <Button variant="ghost" size="icon" className={`h-8 w-8 hidden sm:flex ${shuffle ? 'text-emerald-400' : 'text-gray-400 hover:text-white'}`} onClick={toggleShuffle}>
+   165→   165→              <Shuffle className="h-4 w-4" />
+   166→   166→            </Button>
+   167→   167→            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={prevSong}>
+   168→   168→              <SkipBack className="h-4 w-4" fill="currentColor" />
+   169→   169→            </Button>
+   170→   170→            <Button size="icon" className="h-10 w-10 rounded-full bg-white text-gray-900 hover:scale-105 transition-transform shadow-lg" onClick={togglePlay}>
+   171→   171→              {isPlaying ? <Pause className="h-5 w-5" fill="currentColor" /> : <Play className="h-5 w-5 ml-0.5" fill="currentColor" />}
+   172→   172→            </Button>
+   173→   173→            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={nextSong}>
+   174→   174→              <SkipForward className="h-4 w-4" fill="currentColor" />
+   175→   175→            </Button>
+   176→   176→            <Button variant="ghost" size="icon" className={`h-8 w-8 hidden sm:flex ${repeat !== 'none' ? 'text-emerald-400' : 'text-gray-400 hover:text-white'}`} onClick={toggleRepeat}>
+   177→   177→              {repeat === 'one' ? <Repeat1 className="h-4 w-4" /> : <Repeat className="h-4 w-4" />}
+   178→   178→            </Button>
+   179→   179→          </div>
+   180→   180→          <div className="hidden sm:flex items-center gap-2 w-full max-w-lg text-xs text-gray-400">
+   181→   181→            <span className="w-10 text-right">{formatDuration(progress)}</span>
+   182→   182→            <Slider value={[progressPercent]} max={100} step={0.1} className="flex-1 [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:bg-emerald-400 [&_[role=slider]]:border-0" onValueChange={(v) => setProgress((v[0] / 100) * duration)} />
+   183→   183→            <span className="w-10">{formatDuration(duration)}</span>
+   184→   184→          </div>
+   185→   185→        </div>
+   186→   186→
+   187→   187→        <div className="flex items-center justify-end gap-1 sm:gap-2 w-[30%]">
+   188→   188→          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden md:flex"><Mic2 className="h-4 w-4" /></Button>
+   189→   189→          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden md:flex"><ListMusic className="h-4 w-4" /></Button>
+   190→   190→          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hidden sm:flex" onClick={toggleMute}>
+   191→   191→            {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+   192→   192→          </Button>
+   193→   193→          <div className="hidden sm:flex w-24 items-center">
+   194→   194→            <Slider value={[isMuted ? 0 : volume * 100]} max={100} step={1} className="[&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:bg-emerald-400 [&_[role=slider]]:border-0" onValueChange={(v) => setVolume(v[0] / 100)} />
+   195→   195→          </div>
+   196→   196→          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={() => setShowFullPlayer(!showFullPlayer)}>
+   197→   197→            <Maximize2 className="h-4 w-4" />
+   198→   198→          </Button>
+   199→   199→          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white" onClick={togglePlayerMinimized} title="Minimizar">
+   200→   200→            <ChevronDown className="h-4 w-4" />
+   201→   201→          </Button>
+   202→   202→          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-400" onClick={clearPlayer} title="Fechar">
+   203→   203→            <X className="h-4 w-4" />
+   204→   204→          </Button>
+   205→   205→        </div>
+   206→   206→      </div>
+   207→   207→    </div>
+   208→   208→  );
+   209→   209→}
+   210→   210→
+   211→   211→// ===== FULL PLAYER OVERLAY =====
+   212→   212→function FullPlayer() {
+   213→   213→  const { currentSong, isPlaying, togglePlay, nextSong, prevSong, progress, duration, showFullPlayer, setShowFullPlayer } = usePlayerStore();
+   214→   214→  if (!showFullPlayer || !currentSong) return null;
+   215→   215→  const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
+   216→   216→
+   217→   217→  return (
+   218→   218→    <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 40 }} className="fixed inset-0 z-[60] bg-gray-950 flex flex-col items-center justify-center p-6">
+   219→   219→      <Button variant="ghost" size="icon" className="absolute top-4 right-4 text-gray-400 hover:text-white" onClick={() => setShowFullPlayer(false)}>
+   220→   220→        <ChevronDown className="h-6 w-6" />
+   221→   221→      </Button>
+   222→   222→      <div className="w-full max-w-md flex flex-col items-center gap-6">
+   223→   223→        <Avatar className="h-72 w-72 rounded-lg shadow-2xl">
+   224→   224→          <AvatarImage src={currentSong.coverUrl} alt={currentSong.title} />
+   225→   225→          <AvatarFallback className="bg-emerald-700 text-white h-72 w-72 rounded-lg"><Music2 className="h-20 w-20" /></AvatarFallback>
+   226→   226→        </Avatar>
+   227→   227→        <div className="text-center w-full">
+   228→   228→          <h2 className="text-2xl font-bold text-white">{currentSong.title}</h2>
+   229→   229→          <p className="text-gray-400 mt-1">{currentSong.artistName}</p>
+   230→   230→        </div>
+   231→   231→        <div className="w-full flex items-center gap-3">
+   232→   232→          <span className="text-xs text-gray-400 w-10 text-right">{formatDuration(progress)}</span>
+   233→   233→          <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden cursor-pointer">
+   234→   234→            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+   235→   235→          </div>
+   236→   236→          <span className="text-xs text-gray-400 w-10">{formatDuration(duration)}</span>
+   237→   237→        </div>
+   238→   238→        <div className="flex items-center gap-6">
+   239→   239→          <Button variant="ghost" size="icon" className="h-12 w-12 text-gray-400 hover:text-white" onClick={prevSong}><SkipBack className="h-6 w-6" fill="currentColor" /></Button>
+   240→   240→          <Button size="icon" className="h-16 w-16 rounded-full bg-white text-gray-900 hover:scale-105 transition-transform shadow-xl" onClick={togglePlay}>
+   241→   241→            {isPlaying ? <Pause className="h-7 w-7" fill="currentColor" /> : <Play className="h-7 w-7 ml-1" fill="currentColor" />}
+   242→   242→          </Button>
+   243→   243→          <Button variant="ghost" size="icon" className="h-12 w-12 text-gray-400 hover:text-white" onClick={nextSong}><SkipForward className="h-6 w-6" fill="currentColor" /></Button>
+   244→   244→        </div>
+   245→   245→      </div>
+   246→   246→    </motion.div>
+   247→   247→  );
+   248→   248→}
+   249→   249→
+   250→   250→// ===== AD OVERLAY (free users - every 2 songs) =====
+   251→   251→const AD_MESSAGES = [
+   252→   252→  '🎧 SoundFlow Premium — Sem anúncios, sem interrupções!',
+   253→   253→  '🎶 Curta música sem limites — Assine o Premium!',
+   254→   254→  '⚡ Download offline + qualidade máxima — SoundFlow Premium',
+   255→   255→  '🎵 Pule quantas músicas quiser — Upgrade Premium!',
+   256→   256→];
+   257→   257→const AD_DURATION = 15; // seconds
+   258→   258→
+   259→   259→function AdOverlay() {
+   260→   260→  const { isAdPlaying, setIsAdPlaying, resetAdCounter } = usePlayerStore();
+   261→   261→  const { setView } = useAppStore();
+   262→   262→  const adMsg = AD_MESSAGES[0]; // Deterministic for SSR
+   263→   263→  const adStartTime = useRef<number>(0);
+   264→   264→  const [countdown, setCountdown] = useState(AD_DURATION);
+   265→   265→
+   266→   266→  // Tick countdown while ad is playing
+   267→   267→  useEffect(() => {
+   268→   268→    if (!isAdPlaying) return;
+   269→   269→    adStartTime.current = Date.now();
+   270→   270→
+   271→   271→    const timer = setInterval(() => {
+   272→   272→      const elapsed = Math.floor((Date.now() - adStartTime.current) / 1000);
+   273→   273→      const remaining = Math.max(0, AD_DURATION - elapsed);
+   274→   274→      setCountdown(remaining);
+   275→   275→    }, 1000);
+   276→   276→
+   277→   277→    return () => clearInterval(timer);
+   278→   278→  }, [isAdPlaying]);
+   279→   279→
+   280→   280→  // When countdown reaches 0, dismiss the ad
+   281→   281→  useEffect(() => {
+   282→   282→    if (isAdPlaying && countdown <= 0) {
+   283→   283→      setIsAdPlaying(false);
+   284→   284→      resetAdCounter();
+   285→   285→    }
+   286→   286→  }, [isAdPlaying, countdown, setIsAdPlaying, resetAdCounter]);
+   287→   287→
+   288→   288→  // When ad is dismissed, reset countdown for next time
+   289→   289→  if (!isAdPlaying) {
+   290→   290→    // Reset if needed (only runs when ad is not playing and component might re-mount)
+   291→   291→    if (countdown !== AD_DURATION) {
+   292→   292→      // Use microtask to avoid setState during render
+   293→   293→      queueMicrotask(() => setCountdown(AD_DURATION));
+   294→   294→    }
+   295→   295→    return null;
+   296→   296→  }
+   297→   297→
+   298→   298→  return (
+   299→   299→    <motion.div
+   300→   300→      initial={{ opacity: 0, y: 20 }}
+   301→   301→      animate={{ opacity: 1, y: 0 }}
+   302→   302→      exit={{ opacity: 0, y: 20 }}
+   303→   303→      className="fixed inset-0 z-[80] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+   304→   304→    >
+   305→   305→      <div className="max-w-md w-full bg-gray-900 rounded-2xl p-8 text-center border border-white/10">
+   306→   306→        <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/20 mb-4">
+   307→   307→          <Megaphone className="h-8 w-8 text-amber-400" />
+   308→   308→        </div>
+   309→   309→        <h3 className="text-lg font-bold text-white mb-2">Anúncio</h3>
+   310→   310→        <p className="text-sm text-gray-300 mb-6">{adMsg}</p>
+   311→   311→        <div className="relative w-full h-2 bg-gray-800 rounded-full mb-4 overflow-hidden">
+   312→   312→          <div
+   313→   313→            className="h-full bg-amber-500 transition-all duration-1000 ease-linear rounded-full"
+   314→   314→            style={{ width: `${((AD_DURATION - countdown) / AD_DURATION) * 100}%` }}
+   315→   315→          />
+   316→   316→        </div>
+   317→   317→        <p className="text-xs text-gray-400 mb-4">
+   318→   318→          Seu conteúdo continua em {countdown}s
+   319→   319→        </p>
+   320→   320→        <Button
+   321→   321→          className="rounded-full bg-emerald-500 text-white hover:bg-emerald-600 text-sm"
+   322→   322→          onClick={() => {
+   323→   323→            setIsAdPlaying(false);
+   324→   324→            resetAdCounter();
+   325→   325→            setView('premium');
+   326→   326→          }}
+   327→   327→        >
+   328→   328→          <Crown className="h-4 w-4 mr-1" /> Remover Anúncios — Premium
+   329→   329→        </Button>
+   330→   330→      </div>
+   331→   331→    </motion.div>
+   332→   332→  );
+   333→   333→}
+   334→   334→
+   335→   335→// ===== LIVES VIEW =====
+   336→   336→function LivesView() {
+   337→   337→  const { setQueue, setCurrentSong, setIsPlaying } = usePlayerStore();
+   338→   338→  const { user, setView } = useAppStore();
+   339→   339→
+   340→   340→  const handleLiveClick = (stream: typeof mockLiveStreams[0]) => {
+   341→   341→    // Play a mock live audio — in production this would be the stream URL
+   342→   342→    const liveSong: SongType = {
+   343→   343→      id: `live-${stream.id}`,
+   344→   344→      title: `🔴 AO VIVO — ${stream.title}`,
+   345→   345→      artistId: stream.artistId,
+   346→   346→      artistName: stream.artistName,
+   347→   347→      duration: 0, // 0 = live/infinite
+   348→   348→      audioUrl: stream.streamUrl || '/audio/live-stream.mp3',
+   349→   349→      coverUrl: stream.thumbnail,
+   350→   350→      playCount: stream.viewerCount,
+   351→   351→      likeCount: 0,
+   352→   352→      isExplicit: false,
+   353→   353→      status: 'approved',
+   354→   354→      genre: 'Live',
+   355→   355→    };
+   356→   356→    setCurrentSong(liveSong);
+   357→   357→    setIsPlaying(true);
+   358→   358→  };
+   359→   359→
+   360→   360→  return (
+   361→   361→    <div className="px-4 pt-2 pb-8 lg:px-6">
+   362→   362→      <div className="flex items-center justify-between mb-6">
+   363→   363→        <h1 className="text-2xl font-bold text-white">Lives Agora</h1>
+   364→   364→        <Badge className="bg-red-500/20 text-red-400 border-red-500/30 animate-pulse">
+   365→   365→          <span className="h-2 w-2 rounded-full bg-red-500 mr-1.5" />
+   366→   366→          {mockLiveStreams.filter(s => s.isLive).length} ao vivo
+   367→   367→        </Badge>
+   368→   368→      </div>
+   369→   369→
+   370→   370→      {/* Live Now */}
+   371→   371→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+   372→   372→        {mockLiveStreams.filter(s => s.isLive).map((stream) => (
+   373→   373→          <motion.div key={stream.id} whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+   374→   374→            <div
+   375→   375→              className="group cursor-pointer overflow-hidden rounded-xl bg-gray-800/50 transition-colors hover:bg-gray-700/50"
+   376→   376→              onClick={() => handleLiveClick(stream)}
+   377→   377→            >
+   378→   378→              <div className="relative aspect-video">
+   379→   379→                <img src={stream.thumbnail} alt={stream.title} className="h-full w-full object-cover" />
+   380→   380→                <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
+   381→   381→                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> AO VIVO
+   382→   382→                </span>
+   383→   383→                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
+   384→   384→                  {formatPlayCount(stream.viewerCount)} assistindo
+   385→   385→                </div>
+   386→   386→                {/* Play overlay */}
+   387→   387→                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+   388→   388→                  <Button
+   389→   389→                    size="lg"
+   390→   390→                    className="rounded-full bg-emerald-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 h-14 w-14"
+   391→   391→                    onClick={(e) => { e.stopPropagation(); handleLiveClick(stream); }}
+   392→   392→                  >
+   393→   393→                    <Play className="h-6 w-6 ml-0.5" fill="white" />
+   394→   394→                  </Button>
+   395→   395→                </div>
+   396→   396→              </div>
+   397→   397→              <div className="p-4">
+   398→   398→                <p className="text-base font-semibold text-white">{stream.title}</p>
+   399→   399→                <p className="text-sm text-gray-400 mt-1">{stream.artistName}</p>
+   400→   400→                <Button
+   401→   401→                  size="sm"
+   402→   402→                  className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs gap-1.5"
+   403→   403→                  onClick={(e) => { e.stopPropagation(); handleLiveClick(stream); }}
+   404→   404→                >
+   405→   405→                  <Radio className="h-3.5 w-3.5" />
+   406→   406→                  Ouvir Ao Vivo
+   407→   407→                </Button>
+   408→   408→              </div>
+   409→   409→            </div>
+   410→   410→          </motion.div>
+   411→   411→        ))}
+   412→   412→      </div>
+   413→   413→
+   414→   414→      {/* Scheduled Lives */}
+   415→   415→      {mockLiveStreams.filter(s => s.isScheduled).length > 0 && (
+   416→   416→        <>
+   417→   417→          <h2 className="text-xl font-bold text-white mb-4">Próximas Lives</h2>
+   418→   418→          <div className="space-y-3">
+   419→   419→            {mockLiveStreams.filter(s => s.isScheduled).map((stream) => (
+   420→   420→              <div key={stream.id} className="flex items-center gap-4 rounded-xl bg-gray-800/50 p-4 hover:bg-gray-700/50 transition-colors">
+   421→   421→                <img src={stream.thumbnail} alt={stream.title} className="h-20 w-32 rounded-lg object-cover" />
+   422→   422→                <div className="flex-1 min-w-0">
+   423→   423→                  <p className="font-semibold text-white truncate">{stream.title}</p>
+   424→   424→                  <p className="text-sm text-gray-400">{stream.artistName}</p>
+   425→   425→                  <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+   426→   426→                    <Calendar className="h-3.5 w-3.5" />
+   427→   427→                    <span>{stream.scheduledAt ? new Date(stream.scheduledAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Data a definir'}</span>
+   428→   428→                  </div>
+   429→   429→                </div>
+   430→   430→                <Button variant="outline" size="sm" className="shrink-0 border-gray-700 text-gray-300 hover:text-white hover:border-emerald-500">
+   431→   431→                  <Bell className="h-4 w-4 mr-1" /> Lembrar
+   432→   432→                </Button>
+   433→   433→              </div>
+   434→   434→            ))}
+   435→   435→          </div>
+   436→   436→        </>
+   437→   437→      )}
+   438→   438→    </div>
+   439→   439→  );
+   440→   440→}
+   441→   441→
+   442→   442→// ===== PODCASTS VIEW =====
+   443→   443→function PodcastsView() {
+   444→   444→  const { setQueue, setCurrentSong, setIsPlaying } = usePlayerStore();
+   445→   445→  const { user, setView } = useAppStore();
+   446→   446→  const [selectedPodcast, setSelectedPodcast] = useState<string | null>(null);
+   447→   447→  const [uploadDialog, setUploadDialog] = useState(false);
+   448→   448→
+   449→   449→  const playEpisode = (episode: PodcastEpisodeType, podcast: typeof mockPodcasts[0]) => {
+   450→   450→    const episodeSong: SongType = {
+   451→   451→      id: `pod-${episode.id}`,
+   452→   452→      title: episode.title,
+   453→   453→      artistId: podcast.artistId,
+   454→   454→      artistName: `${podcast.title} • ${podcast.artistName}`,
+   455→   455→      duration: episode.duration,
+   456→   456→      audioUrl: episode.audioUrl,
+   457→   457→      coverUrl: podcast.coverUrl,
+   458→   458→      playCount: episode.playCount,
+   459→   459→      likeCount: 0,
+   460→   460→      isExplicit: false,
+   461→   461→      status: 'approved',
+   462→   462→      genre: 'Podcast',
+   463→   463→    };
+   464→   464→    setCurrentSong(episodeSong);
+   465→   465→    setIsPlaying(true);
+   466→   466→  };
+   467→   467→
+   468→   468→  const playAllEpisodes = (podcast: typeof mockPodcasts[0]) => {
+   469→   469→    if (!podcast.episodes || podcast.episodes.length === 0) return;
+   470→   470→    const songs: SongType[] = podcast.episodes.map((ep) => ({
+   471→   471→      id: `pod-${ep.id}`,
+   472→   472→      title: ep.title,
+   473→   473→      artistId: podcast.artistId,
+   474→   474→      artistName: `${podcast.title} • ${podcast.artistName}`,
+   475→   475→      duration: ep.duration,
+   476→   476→      audioUrl: ep.audioUrl,
+   477→   477→      coverUrl: podcast.coverUrl,
+   478→   478→      playCount: ep.playCount,
+   479→   479→      likeCount: 0,
+   480→   480→      isExplicit: false,
+   481→   481→      status: 'approved',
+   482→   482→      genre: 'Podcast',
+   483→   483→    }));
+   484→   484→    setQueue(songs, 0);
+   485→   485→  };
+   486→   486→
+   487→   487→  const selected = mockPodcasts.find(p => p.id === selectedPodcast);
+   488→   488→
+   489→   489→  return (
+   490→   490→    <div className="px-4 pt-2 pb-8 lg:px-6">
+   491→   491→      {/* Header */}
+   492→   492→      <div className="flex items-center justify-between mb-6">
+   493→   493→        <h1 className="text-2xl font-bold text-white">Podcasts</h1>
+   494→   494→        {(user?.role === 'creator' || user?.role === 'admin') && (
+   495→   495→          <Button
+   496→   496→            className="bg-emerald-500 text-white hover:bg-emerald-600 gap-1.5"
+   497→   497→            onClick={() => setUploadDialog(true)}
+   498→   498→          >
+   499→   499→            <Upload className="h-4 w-4" /> Upload Episódio
+   500→   500→          </Button>
+   501→   501→        )}
+   502→   502→      </div>
+   503→   503→
+   504→   504→      {/* Live Podcasts Banner */}
+   505→   505→      {mockPodcasts.some(p => p.episodes?.some(ep => ep.title.includes('AO VIVO'))) && (
+   506→   506→        <div className="mb-8">
+   507→   507→          <h2 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+   508→   508→            <Radio className="h-5 w-5 text-red-400" />
+   509→   509→            Podcasts Ao Vivo
+   510→   510→          </h2>
+   511→   511→          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+   512→   512→            {mockPodcasts.filter(p => p.episodes?.some(ep => ep.title.includes('AO VIVO'))).map((podcast) => {
+   513→   513→              const liveEp = podcast.episodes?.find(ep => ep.title.includes('AO VIVO'));
+   514→   514→              if (!liveEp) return null;
+   515→   515→              return (
+   516→   516→                <motion.div key={podcast.id} whileHover={{ scale: 1.02 }}>
+   517→   517→                  <div
+   518→   518→                    className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-red-500/20 to-gray-800/50 border border-red-500/20 cursor-pointer hover:border-red-500/40 transition-colors"
+   519→   519→                    onClick={() => playEpisode(liveEp, podcast)}
+   520→   520→                  >
+   521→   521→                    <div className="relative shrink-0">
+   522→   522→                      <img src={podcast.coverUrl} alt={podcast.title} className="h-16 w-16 rounded-lg object-cover" />
+   523→   523→                      <span className="absolute -top-1 -right-1 flex items-center gap-1 rounded-full bg-red-600 px-1.5 py-0.5 text-[8px] font-bold text-white">
+   524→   524→                        <span className="h-1 w-1 rounded-full bg-white animate-pulse" /> LIVE
+   525→   525→                      </span>
+   526→   526→                    </div>
+   527→   527→                    <div className="min-w-0 flex-1">
+   528→   528→                      <p className="text-sm font-semibold text-white truncate">{liveEp.title}</p>
+   529→   529→                      <p className="text-xs text-gray-400 truncate">{podcast.artistName}</p>
+   530→   530→                      <p className="text-xs text-red-400 mt-1">🔴 Ao vivo agora</p>
+   531→   531→                    </div>
+   532→   532→                    <Button size="sm" className="shrink-0 rounded-full bg-red-600 text-white hover:bg-red-700 h-9 w-9 p-0">
+   533→   533→                      <Play className="h-4 w-4 ml-0.5" fill="white" />
+   534→   534→                    </Button>
+   535→   535→                  </div>
+   536→   536→                </motion.div>
+   537→   537→              );
+   538→   538→            })}
+   539→   539→          </div>
+   540→   540→        </div>
+   541→   541→      )}
+   542→   542→
+   543→   543→      {/* Selected Podcast Detail */}
+   544→   544→      {selected && selected.episodes ? (
+   545→   545→        <div className="mb-8">
+   546→   546→          <button
+   547→   547→            onClick={() => setSelectedPodcast(null)}
+   548→   548→            className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-4 transition-colors"
+   549→   549→          >
+   550→   550→            ← Voltar aos podcasts
+   551→   551→          </button>
+   552→   552→          <div className="flex gap-6 mb-6">
+   553→   553→            <img src={selected.coverUrl} alt={selected.title} className="h-40 w-40 rounded-xl object-cover shrink-0" />
+   554→   554→            <div className="flex flex-col justify-end min-w-0">
+   555→   555→              <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Podcast</p>
+   556→   556→              <h2 className="text-2xl font-bold text-white mb-1">{selected.title}</h2>
+   557→   557→              <p className="text-sm text-gray-400 mb-2">{selected.artistName} • {selected.episodes.length} episódios</p>
+   558→   558→              <p className="text-xs text-gray-500 mb-3">{selected.description}</p>
+   559→   559→              <div className="flex gap-2">
+   560→   560→                <Button
+   561→   561→                  className="rounded-full bg-emerald-500 text-white hover:bg-emerald-600 gap-1.5"
+   562→   562→                  onClick={() => playAllEpisodes(selected)}
+   563→   563→                >
+   564→   564→                  <Play className="h-4 w-4" fill="white" /> Ouvir Tudo
+   565→   565→                </Button>
+   566→   566→              </div>
+   567→   567→            </div>
+   568→   568→          </div>
+   569→   569→
+   570→   570→          {/* Episodes List */}
+   571→   571→          <div className="space-y-2">
+   572→   572→            {selected.episodes.map((ep, i) => (
+   573→   573→              <div
+   574→   574→                key={ep.id}
+   575→   575→                className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 cursor-pointer transition-colors group"
+   576→   576→                onClick={() => playEpisode(ep, selected)}
+   577→   577→              >
+   578→   578→                <span className="text-xs font-bold text-gray-600 w-4 text-center shrink-0">{i + 1}</span>
+   579→   579→                <img src={selected.coverUrl} alt={ep.title} className="h-12 w-12 rounded-lg object-cover shrink-0" />
+   580→   580→                <div className="flex-1 min-w-0">
+   581→   581→                  <p className="text-sm font-medium text-white truncate group-hover:text-emerald-400 transition-colors">{ep.title}</p>
+   582→   582→                  <p className="text-xs text-gray-500 truncate">{ep.description}</p>
+   583→   583→                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+   584→   584→                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatDuration(ep.duration)}</span>
+   585→   585→                    <span>{formatPlayCount(ep.playCount)} plays</span>
+   586→   586→                    {ep.isExclusive && <span className="text-amber-400">Exclusivo</span>}
+   587→   587→                  </div>
+   588→   588→                </div>
+   589→   589→                <Button size="sm" className="shrink-0 rounded-full bg-white/10 text-white hover:bg-emerald-500 h-9 w-9 p-0 opacity-0 group-hover:opacity-100 transition-all">
+   590→   590→                  <Play className="h-4 w-4 ml-0.5" fill="white" />
+   591→   591→                </Button>
+   592→   592→              </div>
+   593→   593→            ))}
+   594→   594→          </div>
+   595→   595→        </div>
+   596→   596→      ) : (
+   597→   597→        <>
+   598→   598→          {/* All Podcasts Grid */}
+   599→   599→          <h2 className="text-lg font-bold text-white mb-3">Todos os Podcasts</h2>
+   600→   600→          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 mb-8">
+   601→   601→            {mockPodcasts.map((podcast) => (
+   602→   602→              <div
+   603→   603→                key={podcast.id}
+   604→   604→                className="group cursor-pointer"
+   605→   605→                onClick={() => setSelectedPodcast(podcast.id)}
+   606→   606→              >
+   607→   607→                <div className="aspect-square overflow-hidden rounded-lg mb-2 relative">
+   608→   608→                  <img src={podcast.coverUrl} alt={podcast.title} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+   609→   609→                  {/* Play overlay */}
+   610→   610→                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/40 transition-colors">
+   611→   611→                    <div className="h-12 w-12 rounded-full bg-emerald-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-lg">
+   612→   612→                      <Play className="h-5 w-5 text-white ml-0.5" fill="white" />
+   613→   613→                    </div>
+   614→   614→                  </div>
+   615→   615→                  {podcast.isExclusive && (
+   616→   616→                    <Badge className="absolute top-2 right-2 bg-amber-500/80 text-white text-[8px]">Exclusivo</Badge>
+   617→   617→                  )}
+   618→   618→                </div>
+   619→   619→                <p className="text-sm font-semibold text-white truncate">{podcast.title}</p>
+   620→   620→                <p className="text-xs text-gray-400 truncate">{podcast.artistName}</p>
+   621→   621→                <p className="text-xs text-gray-500">{podcast.episodes?.length || 0} episódios</p>
+   622→   622→              </div>
+   623→   623→            ))}
+   624→   624→          </div>
+   625→   625→        </>
+   626→   626→      )}
+   627→   627→
+   628→   628→      {/* Upload Dialog */}
+   629→   629→      {uploadDialog && (
+   630→   630→        <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setUploadDialog(false)}>
+   631→   631→          <div className="max-w-md w-full bg-gray-900 rounded-2xl p-6 border border-white/10" onClick={(e) => e.stopPropagation()}>
+   632→   632→            <div className="flex items-center justify-between mb-4">
+   633→   633→              <h3 className="text-lg font-bold text-white">Upload de Episódio</h3>
+   634→   634→              <Button variant="ghost" size="icon" className="text-gray-400 hover:text-white" onClick={() => setUploadDialog(false)}>
+   635→   635→                <X className="h-5 w-5" />
+   636→   636→              </Button>
+   637→   637→            </div>
+   638→   638→            <div className="space-y-4">
+   639→   639→              <div>
+   640→   640→                <label className="text-sm text-gray-400 mb-1.5 block">Título do Episódio *</label>
+   641→   641→                <Input placeholder="Ex: Episódio 10 - Entrevista especial" className="bg-gray-800 border-gray-700 text-white" />
+   642→   642→              </div>
+   643→   643→              <div>
+   644→   644→                <label className="text-sm text-gray-400 mb-1.5 block">Podcast *</label>
+   645→   645→                <select className="w-full rounded-lg bg-gray-800 border-gray-700 text-white px-3 py-2 text-sm">
+   646→   646→                  <option>Selecione o podcast...</option>
+   647→   647→                  {mockPodcasts.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+   648→   648→                </select>
+   649→   649→              </div>
+   650→   650→              <div>
+   651→   651→                <label className="text-sm text-gray-400 mb-1.5 block">Arquivo de Áudio *</label>
+   652→   652→                <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-emerald-500/50 transition-colors cursor-pointer">
+   653→   653→                  <Upload className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+   654→   654→                  <p className="text-sm text-gray-400">Arraste o arquivo ou clique para selecionar</p>
+   655→   655→                  <p className="text-xs text-gray-600 mt-1">MP3, WAV, M4A — Máximo 500MB</p>
+   656→   656→                </div>
+   657→   657→              </div>
+   658→   658→              <div>
+   659→   659→                <label className="text-sm text-gray-400 mb-1.5 block">Descrição</label>
+   660→   660→                <textarea placeholder="Descreva o episódio..." className="w-full rounded-lg bg-gray-800 border-gray-700 text-white px-3 py-2 text-sm h-20 resize-none" />
+   661→   661→              </div>
+   662→   662→              <div className="flex items-center gap-2">
+   663→   663→                <input type="checkbox" id="exclusive" className="rounded border-gray-700" />
+   664→   664→                <label htmlFor="exclusive" className="text-sm text-gray-400">Conteúdo exclusivo Premium</label>
+   665→   665→              </div>
+   666→   666→              <Button className="w-full rounded-full bg-emerald-500 text-white hover:bg-emerald-600">
+   667→   667→                <Upload className="h-4 w-4 mr-1.5" /> Publicar Episódio
+   668→   668→              </Button>
+   669→   669→            </div>
+   670→   670→          </div>
+   671→   671→        </div>
+   672→   672→      )}
+   673→   673→    </div>
+   674→   674→  );
+   675→   675→}
+   676→   676→
+   677→   677→// ===== PROFILE VIEW =====
+   678→   678→function ProfileView() {
+   679→   679→  const { user, setView, setSelectedPlaylistId, setUser } = useAppStore();
+   680→   680→  const [editing, setEditing] = useState(false);
+   681→   681→  const [editName, setEditName] = useState(user?.name || '');
+   682→   682→  const [editAvatar, setEditAvatar] = useState(user?.avatar || '');
+   683→   683→  const [saving, setSaving] = useState(false);
+   684→   684→  const [saveMsg, setSaveMsg] = useState('');
+   685→   685→  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+   686→   686→  const avatarInputRef = useRef<HTMLInputElement>(null);
+   687→   687→
+   688→   688→  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   689→   689→    const file = e.target.files?.[0];
+   690→   690→    if (!file) return;
+   691→   691→
+   692→   692→    // Validate file type
+   693→   693→    if (!file.type.startsWith('image/')) {
+   694→   694→      setSaveMsg('Selecione uma imagem válida');
+   695→   695→      setTimeout(() => setSaveMsg(''), 3000);
+   696→   696→      return;
+   697→   697→    }
+   698→   698→
+   699→   699→    // Validate file size (10MB)
+   700→   700→    if (file.size > 10 * 1024 * 1024) {
+   701→   701→      setSaveMsg('Imagem muito grande (máximo 10MB)');
+   702→   702→      setTimeout(() => setSaveMsg(''), 3000);
+   703→   703→      return;
+   704→   704→    }
+   705→   705→
+   706→   706→    setUploadingAvatar(true);
+   707→   707→    try {
+   708→   708→      const formData = new FormData();
+   709→   709→      formData.append('file', file);
+   710→   710→
+   711→   711→      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+   712→   712→      if (res.ok) {
+   713→   713→        const data = await res.json();
+   714→   714→        setEditAvatar(data.url);
+   715→   715→        setSaveMsg('');
+   716→   716→      } else {
+   717→   717→        const data = await res.json();
+   718→   718→        setSaveMsg(data.error || 'Erro ao enviar imagem');
+   719→   719→      }
+   720→   720→    } catch {
+   721→   721→      setSaveMsg('Erro ao enviar imagem');
+   722→   722→    }
+   723→   723→    setUploadingAvatar(false);
+   724→   724→    // Reset input so the same file can be selected again
+   725→   725→    if (avatarInputRef.current) avatarInputRef.current.value = '';
+   726→   726→  };
+   727→   727→
+   728→   728→  const handleSaveProfile = async () => {
+   729→   729→    if (!editName.trim()) return;
+   730→   730→    setSaving(true);
+   731→   731→    try {
+   732→   732→      const res = await fetch('/api/profile', {
+   733→   733→        method: 'PUT',
+   734→   734→        headers: { 'Content-Type': 'application/json' },
+   735→   735→        body: JSON.stringify({ userId: user?.id, name: editName, avatar: editAvatar }),
+   736→   736→      });
+   737→   737→      if (res.ok) {
+   738→   738→        const data = await res.json();
+   739→   739→        setUser({ ...user, name: data.user.name, avatar: data.user.avatar } as UserType);
+   740→   740→        setSaveMsg('Perfil salvo com sucesso!');
+   741→   741→        setEditing(false);
+   742→   742→      } else {
+   743→   743→        setSaveMsg('Erro ao salvar perfil');
+   744→   744→      }
+   745→   745→    } catch {
+   746→   746→      setSaveMsg('Erro ao salvar perfil');
+   747→   747→    }
+   748→   748→    setSaving(false);
+   749→   749→    setTimeout(() => setSaveMsg(''), 3000);
+   750→   750→  };
+   751→   751→
+   752→   752→  return (
+   753→   753→    <div className="px-4 pt-2 pb-8 lg:px-6">
+   754→   754→      <div className="max-w-3xl mx-auto">
+   755→   755→        {/* Profile Header */}
+   756→   756→        <div className="flex flex-col items-center gap-4 mb-8 relative">
+   757→   757→          <div className="relative group">
+   758→   758→            <Avatar className="h-32 w-32">
+   759→   759→              <AvatarImage src={editing ? editAvatar || undefined : user?.avatar} alt={user?.name || 'User'} />
+   760→   760→              <AvatarFallback className="bg-emerald-700 text-white text-3xl h-32 w-32">
+   761→   761→                {(user?.name || 'U').charAt(0).toUpperCase()}
+   762→   762→              </AvatarFallback>
+   763→   763→            </Avatar>
+   764→   764→            {editing && (
+   765→   765→              <div
+   766→   766→                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer"
+   767→   767→                onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
+   768→   768→              >
+   769→   769→                {uploadingAvatar ? (
+   770→   770→                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+   771→   771→                ) : (
+   772→   772→                  <span className="text-xs text-white font-medium">📷 Trocar foto</span>
+   773→   773→                )}
+   774→   774→              </div>
+   775→   775→            )}
+   776→   776→            <input
+   777→   777→              ref={avatarInputRef}
+   778→   778→              type="file"
+   779→   779→              accept="image/*"
+   780→   780→              className="hidden"
+   781→   781→              onChange={handleAvatarUpload}
+   782→   782→            />
+   783→   783→          </div>
+   784→   784→
+   785→   785→          {editing ? (
+   786→   786→            <div className="w-full max-w-sm space-y-3">
+   787→   787→              <div>
+   788→   788→                <label className="text-xs text-gray-400 mb-1 block">Nome</label>
+   789→   789→                <Input
+   790→   790→                  value={editName}
+   791→   791→                  onChange={(e) => setEditName(e.target.value)}
+   792→   792→                  className="bg-gray-800 border-gray-700 text-white text-center text-lg"
+   793→   793→                  placeholder="Seu nome"
+   794→   794→                />
+   795→   795→              </div>
+   796→   796→              {editAvatar && (
+   797→   797→                <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-800/50 border border-gray-700">
+   798→   798→                  <img src={editAvatar} alt="Preview" className="h-8 w-8 rounded-full object-cover" />
+   799→   799→                  <span className="text-xs text-gray-400 truncate flex-1">{editAvatar}</span>
+   800→   800→                  <Button
+   801→   801→                    variant="ghost"
+   802→   802→                    size="sm"
+   803→   803→                    className="h-6 w-6 p-0 text-gray-500 hover:text-red-400"
+   804→   804→                    onClick={() => setEditAvatar('')}
+   805→   805→                  >
+   806→   806→                    <X className="h-3 w-3" />
+   807→   807→                  </Button>
+   808→   808→                </div>
+   809→   809→              )}
+   810→   810→              <div className="flex gap-2">
+   811→   811→                <Button
+   812→   812→                  className="flex-1 rounded-full bg-emerald-500 text-white hover:bg-emerald-600"
+   813→   813→                  onClick={handleSaveProfile}
+   814→   814→                  disabled={saving}
+   815→   815→                >
+   816→   816→                  {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</> : 'Salvar'}
+   817→   817→                </Button>
+   818→   818→                <Button
+   819→   819→                  variant="outline"
+   820→   820→                  className="flex-1 rounded-full border-gray-700 text-gray-300 hover:text-white"
+   821→   821→                  onClick={() => { setEditing(false); setEditName(user?.name || ''); setEditAvatar(user?.avatar || ''); }}
+   822→   822→                >
+   823→   823→                  Cancelar
+   824→   824→                </Button>
+   825→   825→              </div>
+   826→   826→              {saveMsg && (
+   827→   827→                <p className={`text-sm text-center ${saveMsg.includes('sucesso') ? 'text-emerald-400' : 'text-red-400'}`}>{saveMsg}</p>
+   828→   828→              )}
+   829→   829→            </div>
+   830→   830→          ) : (
+   831→   831→            <>
+   832→   832→              <h1 className="text-2xl font-bold text-white">{user?.name || 'Usuário'}</h1>
+   833→   833→              <div className="flex items-center gap-2">
+   834→   834→                <span className="text-gray-400">@{user?.username || 'user'}</span>
+   835→   835→                <span className="text-gray-600">•</span>
+   836→   836→                <span className={`text-sm font-medium ${user?.plan === 'free' ? 'text-gray-400' : 'text-emerald-400'}`}>
+   837→   837→                  {user?.plan === 'free' ? 'Plano Free' : 'Premium'}
+   838→   838→                </span>
+   839→   839→                {user?.role === 'admin' && (
+   840→   840→                  <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium">Admin</span>
+   841→   841→                )}
+   842→   842→                {user?.role === 'creator' && (
+   843→   843→                  <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full font-medium">Criador</span>
+   844→   844→                )}
+   845→   845→              </div>
+   846→   846→              <Button
+   847→   847→                variant="outline"
+   848→   848→                size="sm"
+   849→   849→                className="rounded-full border-gray-700 text-gray-300 hover:text-white hover:border-emerald-500 gap-1.5"
+   850→   850→                onClick={() => setEditing(true)}
+   851→   851→              >
+   852→   852→                ✏️ Editar Perfil
+   853→   853→              </Button>
+   854→   854→            </>
+   855→   855→          )}
+   856→   856→        </div>
+   857→   857→
+   858→   858→        {/* Minhas Playlists */}
+   859→   859→        <div className="mt-6">
+   860→   860→          <h2 className="text-xl font-bold text-white mb-4">Minhas Playlists</h2>
+   861→   861→          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+   862→   862→            {/* Músicas Curtidas Card */}
+   863→   863→            <button
+   864→   864→              onClick={() => {
+   865→   865→                setSelectedPlaylistId('liked');
+   866→   866→                setView('playlist');
+   867→   867→              }}
+   868→   868→              className="group cursor-pointer"
+   869→   869→            >
+   870→   870→              <div className="aspect-square overflow-hidden rounded-lg mb-2 flex items-center justify-center bg-gradient-to-br from-purple-700 to-blue-300 relative">
+   871→   871→                <Heart className="h-12 w-12 text-white" fill="white" />
+   872→   872→              </div>
+   873→   873→              <p className="text-sm font-semibold text-white truncate">Músicas Curtidas</p>
+   874→   874→              <p className="text-xs text-gray-400 truncate">Playlist • 12 músicas</p>
+   875→   875→            </button>
+   876→   876→
+   877→   877→            {/* Criar Playlist Card */}
+   878→   878→            <button className="group cursor-pointer">
+   879→   879→              <div className="aspect-square overflow-hidden rounded-lg mb-2 flex items-center justify-center bg-gray-800/50 border-2 border-dashed border-gray-700 hover:border-emerald-500/50 transition-colors">
+   880→   880→                <Plus className="h-10 w-10 text-gray-500 group-hover:text-emerald-400 transition-colors" />
+   881→   881→              </div>
+   882→   882→              <p className="text-sm font-semibold text-gray-400 group-hover:text-emerald-400 truncate transition-colors">Criar Playlist</p>
+   883→   883→              <p className="text-xs text-gray-500 truncate">Monte sua playlist</p>
+   884→   884→            </button>
+   885→   885→
+   886→   886→            {/* Mock Playlists */}
+   887→   887→            {mockPlaylists.map((playlist) => (
+   888→   888→              <button
+   889→   889→                key={playlist.id}
+   890→   890→                onClick={() => {
+   891→   891→                  setSelectedPlaylistId(playlist.id);
+   892→   892→                  setView('playlist');
+   893→   893→                }}
+   894→   894→                className="group cursor-pointer"
+   895→   895→              >
+   896→   896→                <div className="aspect-square overflow-hidden rounded-lg mb-2">
+   897→   897→                  {playlist.coverUrl ? (
+   898→   898→                    <img src={playlist.coverUrl} alt={playlist.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+   899→   899→                  ) : (
+   900→   900→                    <div className="h-full w-full bg-gray-800 flex items-center justify-center">
+   901→   901→                      <Music2 className="h-10 w-10 text-gray-600" />
+   902→   902→                    </div>
+   903→   903→                  )}
+   904→   904→                </div>
+   905→   905→                <p className="text-sm font-semibold text-white truncate">{playlist.name}</p>
+   906→   906→                <p className="text-xs text-gray-400 truncate">{playlist.description} • {playlist.songCount || 0} músicas</p>
+   907→   907→              </button>
+   908→   908→            ))}
+   909→   909→          </div>
+   910→   910→        </div>
+   911→   911→      </div>
+   912→   912→    </div>
+   913→   913→  );
+   914→   914→}
+   915→   915→
+   916→   916→// ===== MAIN APP =====
+   917→   917→export default function Home() {
+   918→   918→  const {
+   919→   919→    view, setView, user, setUser, isAuthenticated, setIsAuthenticated,
+   920→   920→    showAuthModal, setShowAuthModal, authMode, setAuthMode,
+   921→   921→  } = useAppStore();
+   922→   922→  const { currentSong, setDuration, setProgress, isPlaying, songsPlayedSinceAd, incrementSongsPlayed, setIsAdPlaying } = usePlayerStore();
+   923→   923→
+   924→   924→  // Simulate song progress
+   925→   925→  useEffect(() => {
+   926→   926→    if (!isPlaying || !currentSong) return;
+   927→   927→    const interval = setInterval(() => { setProgress(1); }, 1000);
+   928→   928→    return () => clearInterval(interval);
+   929→   929→  }, [isPlaying, currentSong, setProgress]);
+   930→   930→
+   931→   931→  // Track songs played and trigger ads for free users every 2 songs
+   932→   932→  useEffect(() => {
+   933→   933→    if (!currentSong || currentSong.genre === 'Live' || currentSong.genre === 'Podcast') return;
+   934→   934→    // Only count when a new song starts playing
+   935→   935→    incrementSongsPlayed();
+   936→   936→  }, [currentSong?.id]);
+   937→   937→
+   938→   938→  useEffect(() => {
+   939→   939→    // Show ad every 2 songs for free plan users
+   940→   940→    if (user?.plan !== 'free' && user?.role !== 'free') return;
+   941→   941→    if (songsPlayedSinceAd > 0 && songsPlayedSinceAd % 2 === 0) {
+   942→   942→      setIsAdPlaying(true);
+   943→   943→    }
+   944→   944→  }, [songsPlayedSinceAd, user?.plan, user?.role, setIsAdPlaying]);
+   945→   945→
+   946→   946→  // Handle successful login from API
+   947→   947→  const handleLoginSuccess = useCallback((user: UserType) => {
+   948→   948→    setUser(user);
+   949→   949→    setIsAuthenticated(true);
+   950→   950→    setView('home');
+   951→   951→    setShowAuthModal(false);
+   952→   952→  }, [setUser, setIsAuthenticated, setView, setShowAuthModal]);
+   953→   953→
+   954→   954→  // Demo login handler
+   955→   955→  const handleDemoLogin = useCallback((type: 'user' | 'admin') => {
+   956→   956→    const demoUser = DEMO_USERS[type];
+   957→   957→    setUser(demoUser);
+   958→   958→    setIsAuthenticated(true);
+   959→   959→    setView('home');
+   960→   960→    setShowAuthModal(false);
+   961→   961→  }, [setUser, setIsAuthenticated, setView, setShowAuthModal]);
+   962→   962→
+   963→   963→  // Handle get started (from landing page)
+   964→   964→  const handleGetStarted = useCallback(() => {
+   965→   965→    setAuthMode('register');
+   966→   966→    setShowAuthModal(true);
+   967→   967→  }, [setAuthMode, setShowAuthModal]);
+   968→   968→
+   969→   969→  // Handle "Entrar" click (from landing page nav)
+   970→   970→  const handleLoginClick = useCallback(() => {
+   971→   971→    setAuthMode('login');
+   972→   972→    setShowAuthModal(true);
+   973→   973→  }, [setAuthMode, setShowAuthModal]);
+   974→   974→
+   975→   975→  // Auto-set duration when song changes
+   976→   976→  useEffect(() => {
+   977→   977→    if (currentSong) setDuration(currentSong.duration);
+   978→   978→  }, [currentSong, setDuration]);
+   979→   979→
+   980→   980→  // Redirect if user doesn't have permission for current view
+   981→   981→  useEffect(() => {
+   982→   982→    if (isAuthenticated && user && !canAccess(user.role, view)) {
+   983→   983→      setView('home');
+   984→   984→    }
+   985→   985→  }, [isAuthenticated, user, view, setView]);
+   986→   986→
+   987→   987→  // Main content based on view
+   988→   988→  const mainContent = useMemo(() => {
+   989→   989→    switch (view) {
+   990→   990→      case 'home': return <HomeView />;
+   991→   991→      case 'search': return <SearchView />;
+   992→   992→      case 'library': return <LibraryView />;
+   993→   993→      case 'premium': return <PremiumView />;
+   994→   994→      case 'playlist': return <PlaylistView />;
+   995→   995→      case 'artist': return <ArtistView />;
+   996→   996→      case 'lives': return <LivesView />;
+   997→   997→      case 'podcasts': return <PodcastsView />;
+   998→   998→      case 'profile': return <ProfileView />;
+   999→   999→      case 'admin': return user?.role === 'admin' || user?.role === 'moderator' ? <AdminPanel /> : <HomeView />;
+  1000→  1000→      case 'creator': return user?.role === 'admin' || user?.role === 'creator' ? <CreatorPanel /> : <HomeView />;
+  1001→  1001→      default: return <HomeView />;
+  1002→  1002→    }
+  1003→  1003→  }, [view, user?.role]);
+  1004→  1004→
+  1005→  1005→  // Show landing page if not authenticated
+  1006→  1006→  if (!isAuthenticated) {
+  1007→  1007→    return (
+  1008→  1008→      <div className="min-h-screen bg-gray-950">
+  1009→  1009→        <LandingPage onGetStarted={handleGetStarted} onLogin={handleLoginClick} />
+  1010→  1010→        <AuthModal
+  1011→  1011→          open={showAuthModal}
+  1012→  1012→          onOpenChange={(open) => {
+  1013→  1013→            setShowAuthModal(open);
+  1014→  1014→          }}
+  1015→  1015→          mode={authMode}
+  1016→  1016→          onDemoLogin={handleDemoLogin}
+  1017→  1017→          onLoginSuccess={handleLoginSuccess}
+  1018→  1018→        />
+  1019→  1019→      </div>
+  1020→  1020→    );
+  1021→  1021→  }
+  1022→  1022→
+  1023→  1023→  // App view
+  1024→  1024→  return (
+  1025→  1025→    <div className="flex h-screen flex-col bg-gray-950 text-white">
+  1026→  1026→      <div className="flex flex-1 overflow-hidden lg:ml-64">
+  1027→  1027→        <Sidebar />
+  1028→  1028→        <main className="flex-1 overflow-y-auto lg:pb-24 pb-16">
+  1029→  1029→          <AnimatePresence mode="wait">
+  1030→  1030→            <motion.div
+  1031→  1031→              key={view}
+  1032→  1032→              initial={{ opacity: 0, y: 8 }}
+  1033→  1033→              animate={{ opacity: 1, y: 0 }}
+  1034→  1034→              exit={{ opacity: 0, y: -8 }}
+  1035→  1035→              transition={{ duration: 0.15 }}
+  1036→  1036→              className="pt-12 lg:pt-0"
+  1037→  1037→            >
+  1038→  1038→              {mainContent}
+  1039→  1039→            </motion.div>
+  1040→  1040→          </AnimatePresence>
+  1041→  1041→        </main>
+  1042→  1042→      </div>
+  1043→  1043→      <PlayerBar />
+  1044→  1044→      <AdOverlay />
+  1045→  1045→      <AnimatePresence>
+  1046→  1046→        {usePlayerStore.getState().showFullPlayer && <FullPlayer />}
+  1047→  1047→      </AnimatePresence>
+  1048→  1048→      <AuthModal
+  1049→  1049→        open={showAuthModal}
+  1050→  1050→        onOpenChange={setShowAuthModal}
+  1051→  1051→        mode={authMode}
+  1052→  1052→        onDemoLogin={handleDemoLogin}
+  1053→  1053→        onLoginSuccess={handleLoginSuccess}
+  1054→  1054→      />
+  1055→  1055→    </div>
+  1056→  1056→  );
+  1057→  1057→}
+  1058→  1058→

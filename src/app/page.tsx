@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useAppStore, usePlayerStore } from '@/stores/app-store';
 import { formatDuration, formatPlayCount } from '@/lib/asaas';
 import { mockLiveStreams, mockPodcasts, mockPlaylists, mockSongs } from '@/lib/mock-data';
-import type { UserType, PodcastEpisodeType } from '@/types';
+import type { UserType, PodcastEpisodeType, SongType, LiveStreamType } from '@/types';
 
 import LandingPage from '@/components/landing/LandingPage';
 import AuthModal from '@/components/landing/AuthModal';
@@ -333,12 +333,96 @@ function AdOverlay() {
 }
 
 // ===== LIVES VIEW =====
-function LivesView() {
-  const { setQueue, setCurrentSong, setIsPlaying } = usePlayerStore();
-  const { user, setView } = useAppStore();
+// Unified live stream type for rendering (from mock or DB)
+interface UnifiedLiveStream {
+  id: string;
+  artistId: string;
+  artistName: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  streamUrl?: string;
+  isLive: boolean;
+  isScheduled: boolean;
+  scheduledAt?: string;
+  viewerCount: number;
+  maxViewers: number;
+  source: 'db' | 'mock';
+}
 
-  const handleLiveClick = (stream: typeof mockLiveStreams[0]) => {
-    // Play a mock live audio — in production this would be the stream URL
+function LivesView() {
+  const { setCurrentSong, setIsPlaying } = usePlayerStore();
+  const [dbActiveLives, setDbActiveLives] = useState<UnifiedLiveStream[]>([]);
+  const [dbScheduledLives, setDbScheduledLives] = useState<UnifiedLiveStream[]>([]);
+  const [loadingDb, setLoadingDb] = useState(true);
+
+  // Fetch live streams from the database API
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/lives/active');
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          // Map DB active lives to UnifiedLiveStream
+          const active: UnifiedLiveStream[] = (data.activeLives || []).map((l: Record<string, unknown>) => ({
+            id: l.id as string,
+            artistId: l.artistId as string,
+            artistName: (l.artist as Record<string, unknown>)?.stageName as string || 'Unknown Artist',
+            title: l.title as string,
+            description: l.description as string | undefined,
+            thumbnail: l.thumbnail as string | undefined,
+            streamUrl: l.streamUrl as string | undefined,
+            isLive: l.isLive as boolean,
+            isScheduled: l.isScheduled as boolean,
+            scheduledAt: l.scheduledAt as string | undefined,
+            viewerCount: l.viewerCount as number,
+            maxViewers: l.maxViewers as number,
+            source: 'db' as const,
+          }));
+          // Map DB scheduled lives to UnifiedLiveStream
+          const scheduled: UnifiedLiveStream[] = (data.scheduledLives || []).map((l: Record<string, unknown>) => ({
+            id: l.id as string,
+            artistId: l.artistId as string,
+            artistName: (l.artist as Record<string, unknown>)?.stageName as string || 'Unknown Artist',
+            title: l.title as string,
+            description: l.description as string | undefined,
+            thumbnail: l.thumbnail as string | undefined,
+            streamUrl: l.streamUrl as string | undefined,
+            isLive: l.isLive as boolean,
+            isScheduled: l.isScheduled as boolean,
+            scheduledAt: l.scheduledAt as string | undefined,
+            viewerCount: l.viewerCount as number,
+            maxViewers: l.maxViewers as number,
+            source: 'db' as const,
+          }));
+          if (!cancelled) {
+            setDbActiveLives(active);
+            setDbScheduledLives(scheduled);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch active lives:', err);
+      }
+      if (!cancelled) setLoadingDb(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Convert mock live streams to UnifiedLiveStream
+  const mockActiveUnified: UnifiedLiveStream[] = mockLiveStreams
+    .filter(s => s.isLive)
+    .map(s => ({ ...s, source: 'mock' as const }));
+
+  const mockScheduledUnified: UnifiedLiveStream[] = mockLiveStreams
+    .filter(s => s.isScheduled)
+    .map(s => ({ ...s, source: 'mock' as const }));
+
+  // Merge: DB lives first, then mock lives
+  const allActiveLives = [...dbActiveLives, ...mockActiveUnified];
+  const allScheduledLives = [...dbScheduledLives, ...mockScheduledUnified];
+
+  const handleLiveClick = (stream: UnifiedLiveStream) => {
     const liveSong: SongType = {
       id: `live-${stream.id}`,
       title: `🔴 AO VIVO — ${stream.title}`,
@@ -357,68 +441,103 @@ function LivesView() {
     setIsPlaying(true);
   };
 
+  const totalLiveCount = allActiveLives.length;
+
   return (
     <div className="px-4 pt-2 pb-8 lg:px-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-white">Lives Agora</h1>
         <Badge className="bg-red-500/20 text-red-400 border-red-500/30 animate-pulse">
           <span className="h-2 w-2 rounded-full bg-red-500 mr-1.5" />
-          {mockLiveStreams.filter(s => s.isLive).length} ao vivo
+          {totalLiveCount} ao vivo
         </Badge>
       </div>
 
+      {/* Loading state */}
+      {loadingDb && (
+        <div className="flex items-center gap-2 text-gray-400 mb-4">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Carregando lives...</span>
+        </div>
+      )}
+
       {/* Live Now */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-        {mockLiveStreams.filter(s => s.isLive).map((stream) => (
-          <motion.div key={stream.id} whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
-            <div
-              className="group cursor-pointer overflow-hidden rounded-xl bg-gray-800/50 transition-colors hover:bg-gray-700/50"
-              onClick={() => handleLiveClick(stream)}
-            >
-              <div className="relative aspect-video">
-                <img src={stream.thumbnail} alt={stream.title} className="h-full w-full object-cover" />
-                <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> AO VIVO
-                </span>
-                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
-                  {formatPlayCount(stream.viewerCount)} assistindo
+      {allActiveLives.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+          {allActiveLives.map((stream) => (
+            <motion.div key={stream.id} whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
+              <div
+                className="group cursor-pointer overflow-hidden rounded-xl bg-gray-800/50 transition-colors hover:bg-gray-700/50"
+                onClick={() => handleLiveClick(stream)}
+              >
+                <div className="relative aspect-video">
+                  {stream.thumbnail ? (
+                    <img src={stream.thumbnail} alt={stream.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full bg-gray-900 flex items-center justify-center">
+                      <Radio className="h-10 w-10 text-red-400" />
+                    </div>
+                  )}
+                  <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                    <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> AO VIVO
+                  </span>
+                  {stream.source === 'db' && (
+                    <span className="absolute top-2 right-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white">
+                      DB
+                    </span>
+                  )}
+                  <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
+                    {formatPlayCount(stream.viewerCount)} assistindo
+                  </div>
+                  {/* Play overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                    <Button
+                      size="lg"
+                      className="rounded-full bg-emerald-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 h-14 w-14"
+                      onClick={(e) => { e.stopPropagation(); handleLiveClick(stream); }}
+                    >
+                      <Play className="h-6 w-6 ml-0.5" fill="white" />
+                    </Button>
+                  </div>
                 </div>
-                {/* Play overlay */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors">
+                <div className="p-4">
+                  <p className="text-base font-semibold text-white">{stream.title}</p>
+                  <p className="text-sm text-gray-400 mt-1">{stream.artistName}</p>
                   <Button
-                    size="lg"
-                    className="rounded-full bg-emerald-500 text-white shadow-lg opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 h-14 w-14"
+                    size="sm"
+                    className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs gap-1.5"
                     onClick={(e) => { e.stopPropagation(); handleLiveClick(stream); }}
                   >
-                    <Play className="h-6 w-6 ml-0.5" fill="white" />
+                    <Radio className="h-3.5 w-3.5" />
+                    Ouvir Ao Vivo
                   </Button>
                 </div>
               </div>
-              <div className="p-4">
-                <p className="text-base font-semibold text-white">{stream.title}</p>
-                <p className="text-sm text-gray-400 mt-1">{stream.artistName}</p>
-                <Button
-                  size="sm"
-                  className="mt-3 bg-red-600 hover:bg-red-700 text-white text-xs gap-1.5"
-                  onClick={(e) => { e.stopPropagation(); handleLiveClick(stream); }}
-                >
-                  <Radio className="h-3.5 w-3.5" />
-                  Ouvir Ao Vivo
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : !loadingDb ? (
+        <div className="text-center py-12 text-gray-500">
+          <Radio className="h-12 w-12 mx-auto mb-3 text-gray-600" />
+          <p className="text-lg font-medium text-gray-400">Nenhuma live no momento</p>
+          <p className="text-sm">Volte mais tarde para assistir lives ao vivo</p>
+        </div>
+      ) : null}
 
       {/* Scheduled Lives */}
-      {mockLiveStreams.filter(s => s.isScheduled).length > 0 && (
+      {allScheduledLives.length > 0 && (
         <>
           <h2 className="text-xl font-bold text-white mb-4">Próximas Lives</h2>
           <div className="space-y-3">
-            {mockLiveStreams.filter(s => s.isScheduled).map((stream) => (
+            {allScheduledLives.map((stream) => (
               <div key={stream.id} className="flex items-center gap-4 rounded-xl bg-gray-800/50 p-4 hover:bg-gray-700/50 transition-colors">
-                <img src={stream.thumbnail} alt={stream.title} className="h-20 w-32 rounded-lg object-cover" />
+                {stream.thumbnail ? (
+                  <img src={stream.thumbnail} alt={stream.title} className="h-20 w-32 rounded-lg object-cover" />
+                ) : (
+                  <div className="h-20 w-32 rounded-lg bg-gray-900 flex items-center justify-center shrink-0">
+                    <Calendar className="h-6 w-6 text-gray-600" />
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-white truncate">{stream.title}</p>
                   <p className="text-sm text-gray-400">{stream.artistName}</p>
@@ -682,6 +801,48 @@ function ProfileView() {
   const [editAvatar, setEditAvatar] = useState(user?.avatar || '');
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setSaveMsg('Selecione uma imagem válida');
+      setTimeout(() => setSaveMsg(''), 3000);
+      return;
+    }
+
+    // Validate file size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setSaveMsg('Imagem muito grande (máximo 10MB)');
+      setTimeout(() => setSaveMsg(''), 3000);
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        setEditAvatar(data.url);
+        setSaveMsg('');
+      } else {
+        const data = await res.json();
+        setSaveMsg(data.error || 'Erro ao enviar imagem');
+      }
+    } catch {
+      setSaveMsg('Erro ao enviar imagem');
+    }
+    setUploadingAvatar(false);
+    // Reset input so the same file can be selected again
+    if (avatarInputRef.current) avatarInputRef.current.value = '';
+  };
 
   const handleSaveProfile = async () => {
     if (!editName.trim()) return;
@@ -720,13 +881,24 @@ function ProfileView() {
               </AvatarFallback>
             </Avatar>
             {editing && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer" onClick={() => {
-                const url = prompt('URL da foto de perfil:', editAvatar);
-                if (url !== null) setEditAvatar(url);
-              }}>
-                <span className="text-xs text-white font-medium">📷 Trocar foto</span>
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full cursor-pointer"
+                onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                ) : (
+                  <span className="text-xs text-white font-medium">📷 Trocar foto</span>
+                )}
               </div>
             )}
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
           </div>
 
           {editing ? (
@@ -740,15 +912,20 @@ function ProfileView() {
                   placeholder="Seu nome"
                 />
               </div>
-              <div>
-                <label className="text-xs text-gray-400 mb-1 block">URL da foto</label>
-                <Input
-                  value={editAvatar}
-                  onChange={(e) => setEditAvatar(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white text-sm"
-                  placeholder="https://..."
-                />
-              </div>
+              {editAvatar && (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-800/50 border border-gray-700">
+                  <img src={editAvatar} alt="Preview" className="h-8 w-8 rounded-full object-cover" />
+                  <span className="text-xs text-gray-400 truncate flex-1">{editAvatar}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-gray-500 hover:text-red-400"
+                    onClick={() => setEditAvatar('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button
                   className="flex-1 rounded-full bg-emerald-500 text-white hover:bg-emerald-600"
