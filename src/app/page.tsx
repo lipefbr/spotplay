@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useCallback, useState } from 'react';
+import { useMemo, useEffect, useCallback, useState, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1,
@@ -258,25 +258,42 @@ const AD_DURATION = 15; // seconds
 
 function AdOverlay() {
   const { isAdPlaying, setIsAdPlaying, resetAdCounter } = usePlayerStore();
-  const [countdown, setCountdown] = useState(AD_DURATION);
+  const { setView } = useAppStore();
   const adMsg = AD_MESSAGES[0]; // Deterministic for SSR
+  const adStartTime = useRef<number>(0);
+  const [countdown, setCountdown] = useState(AD_DURATION);
 
+  // Tick countdown while ad is playing
   useEffect(() => {
-    if (!isAdPlaying || countdown <= 0) return;
-    const timer = setTimeout(() => {
-      setCountdown((prev) => {
-        const next = prev - 1;
-        if (next <= 0) {
-          setIsAdPlaying(false);
-          resetAdCounter();
-        }
-        return next;
-      });
+    if (!isAdPlaying) return;
+    adStartTime.current = Date.now();
+
+    const timer = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - adStartTime.current) / 1000);
+      const remaining = Math.max(0, AD_DURATION - elapsed);
+      setCountdown(remaining);
     }, 1000);
-    return () => clearTimeout(timer);
+
+    return () => clearInterval(timer);
+  }, [isAdPlaying]);
+
+  // When countdown reaches 0, dismiss the ad
+  useEffect(() => {
+    if (isAdPlaying && countdown <= 0) {
+      setIsAdPlaying(false);
+      resetAdCounter();
+    }
   }, [isAdPlaying, countdown, setIsAdPlaying, resetAdCounter]);
 
-  if (!isAdPlaying) return null;
+  // When ad is dismissed, reset countdown for next time
+  if (!isAdPlaying) {
+    // Reset if needed (only runs when ad is not playing and component might re-mount)
+    if (countdown !== AD_DURATION) {
+      // Use microtask to avoid setState during render
+      queueMicrotask(() => setCountdown(AD_DURATION));
+    }
+    return null;
+  }
 
   return (
     <motion.div
@@ -303,9 +320,9 @@ function AdOverlay() {
         <Button
           className="rounded-full bg-emerald-500 text-white hover:bg-emerald-600 text-sm"
           onClick={() => {
-            setView('premium');
             setIsAdPlaying(false);
             resetAdCounter();
+            setView('premium');
           }}
         >
           <Crown className="h-4 w-4 mr-1" /> Remover Anúncios — Premium
