@@ -7,6 +7,7 @@ export async function GET() {
     const results = {
       admin: { created: false, message: '' },
       user: { created: false, message: '' },
+      artist: { created: false, message: '' },
     };
 
     // Create admin user if not exists
@@ -14,9 +15,11 @@ export async function GET() {
       where: { email: 'admin@soundflow.com' },
     });
 
+    let adminUser = existingAdmin;
+
     if (!existingAdmin) {
       const adminPassword = hashPassword('admin123');
-      await db.user.create({
+      adminUser = await db.user.create({
         data: {
           email: 'admin@soundflow.com',
           name: 'Admin SpotiPlay',
@@ -55,6 +58,31 @@ export async function GET() {
       results.user = { created: true, message: 'Demo user created successfully' };
     } else {
       results.user = { created: false, message: 'Demo user already exists' };
+    }
+
+    // Create artist profile for admin if not exists
+    if (adminUser) {
+      const existingArtist = await db.artist.findUnique({
+        where: { userId: adminUser.id },
+      });
+
+      if (!existingArtist) {
+        await db.artist.create({
+          data: {
+            userId: adminUser.id,
+            stageName: 'Lucas Mendes',
+            bio: 'Cantor e compositor de MPB com mais de 10 anos de carreira',
+            genre: 'MPB',
+            country: 'BR',
+            verified: true,
+            monthlyListeners: 2500000,
+            totalPlays: 45000000,
+          },
+        });
+        results.artist = { created: true, message: 'Artist profile created successfully' };
+      } else {
+        results.artist = { created: false, message: 'Artist profile already exists' };
+      }
     }
 
     return NextResponse.json(
