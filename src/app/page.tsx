@@ -30,34 +30,6 @@ import ArtistView from '@/components/app/ArtistView';
 import AdminPanel from '@/components/admin/AdminPanel';
 import CreatorPanel from '@/components/creator/CreatorPanel';
 
-// ===== DEMO USERS =====
-const DEMO_USERS: Record<string, UserType> = {
-  user: {
-    id: 'u1',
-    email: 'user@soundflow.com',
-    name: 'Usuário Demo',
-    username: 'user_demo',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop',
-    role: 'free',
-    plan: 'free',
-    isVerified: true,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-  admin: {
-    id: 'u_admin',
-    email: 'admin@soundflow.com',
-    name: 'Admin SpotiPlay',
-    username: 'admin_soundflow',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-    role: 'admin',
-    plan: 'premium_individual',
-    isVerified: true,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-};
-
 // ===== ROLE PERMISSIONS =====
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
   free: ['home', 'search', 'library', 'playlist', 'artist', 'lives', 'podcasts', 'premium', 'profile'],
@@ -1070,15 +1042,6 @@ export default function Home() {
     setShowAuthModal(false);
   }, [setUser, setIsAuthenticated, setView, setShowAuthModal]);
 
-  // Demo login handler
-  const handleDemoLogin = useCallback((type: 'user' | 'admin') => {
-    const demoUser = DEMO_USERS[type];
-    setUser(demoUser);
-    setIsAuthenticated(true);
-    setView('home');
-    setShowAuthModal(false);
-  }, [setUser, setIsAuthenticated, setView, setShowAuthModal]);
-
   // Handle get started (from landing page)
   const handleGetStarted = useCallback(() => {
     setAuthMode('register');
@@ -1132,7 +1095,6 @@ export default function Home() {
             setShowAuthModal(open);
           }}
           mode={authMode}
-          onDemoLogin={handleDemoLogin}
           onLoginSuccess={handleLoginSuccess}
         />
       </div>
@@ -1168,7 +1130,6 @@ export default function Home() {
         open={showAuthModal}
         onOpenChange={setShowAuthModal}
         mode={authMode}
-        onDemoLogin={handleDemoLogin}
         onLoginSuccess={handleLoginSuccess}
       />
     </div>

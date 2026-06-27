@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Music, Eye, EyeOff, Chrome, Apple, Facebook, Shield, User } from 'lucide-react';
+import { Music, Eye, EyeOff, Chrome, Apple, Facebook } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,11 +15,10 @@ interface AuthModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'login' | 'register';
-  onDemoLogin: (type: 'user' | 'admin') => void;
   onLoginSuccess: (user: UserType) => void;
 }
 
-export default function AuthModal({ open, onOpenChange, mode, onDemoLogin, onLoginSuccess }: AuthModalProps) {
+export default function AuthModal({ open, onOpenChange, mode, onLoginSuccess }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<string>(mode);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -431,40 +430,9 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin, onLog
                 </Button>
               </div>
 
-              {/* Demo Login Section */}
               <div className="mt-6">
-                <div className="relative mb-4">
-                  <Separator className="bg-white/5" />
-                  <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-900 px-3 text-amber-400/80 text-xs font-medium">
-                    Acesso Demo
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-emerald-500/30 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-300 transition-all duration-200 py-4 flex flex-col gap-1 h-auto"
-                    onClick={() => onDemoLogin('user')}
-                  >
-                    <User className="w-4 h-4" />
-                    <span className="text-xs font-semibold">Usuário Demo</span>
-                    <span className="text-[10px] text-emerald-500/60">user@soundflow.com</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="border-amber-500/30 bg-amber-500/5 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/50 hover:text-amber-300 transition-all duration-200 py-4 flex flex-col gap-1 h-auto"
-                    onClick={() => onDemoLogin('admin')}
-                  >
-                    <Shield className="w-4 h-4" />
-                    <span className="text-xs font-semibold">Admin Demo</span>
-                    <span className="text-[10px] text-amber-500/60">admin@soundflow.com</span>
-                  </Button>
-                </div>
-
-                <p className="text-[10px] text-gray-600 text-center mt-3">
-                  Contas de demonstração para testar a plataforma
+                <p className="text-[10px] text-gray-600 text-center">
+                  Faça login ou crie uma conta para acessar a plataforma
                 </p>
               </div>
             </Tabs>

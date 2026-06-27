@@ -2,11 +2,19 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 
+// GET /api/auth/seed — Initialize admin account (development only)
 export async function GET() {
+  // Block in production for security
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Seed endpoint is disabled in production' },
+      { status: 403 }
+    );
+  }
+
   try {
     const results = {
       admin: { created: false, message: '' },
-      user: { created: false, message: '' },
       artist: { created: false, message: '' },
     };
 
@@ -34,30 +42,6 @@ export async function GET() {
       results.admin = { created: true, message: 'Admin user created successfully' };
     } else {
       results.admin = { created: false, message: 'Admin user already exists' };
-    }
-
-    // Create regular user if not exists
-    const existingUser = await db.user.findUnique({
-      where: { email: 'user@soundflow.com' },
-    });
-
-    if (!existingUser) {
-      const userPassword = hashPassword('user123');
-      await db.user.create({
-        data: {
-          email: 'user@soundflow.com',
-          name: 'Usuário Demo',
-          username: 'user_demo',
-          password: userPassword,
-          role: 'free',
-          plan: 'free',
-          isVerified: true,
-          isActive: true,
-        },
-      });
-      results.user = { created: true, message: 'Demo user created successfully' };
-    } else {
-      results.user = { created: false, message: 'Demo user already exists' };
     }
 
     // Create artist profile for admin if not exists
