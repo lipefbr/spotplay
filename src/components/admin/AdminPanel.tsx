@@ -217,7 +217,7 @@ const mockUsers: MockUser[] = [
   { id: 'u8', name: 'Isabela Ferreira', email: 'isabela@email.com', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop', role: 'creator', plan: 'premium_individual', status: 'active', joinedDate: '2024-03-20' },
   { id: 'u9', name: 'João Santos', email: 'joao@email.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', role: 'free', plan: 'free', status: 'banned', joinedDate: '2024-08-05' },
   { id: 'u10', name: 'Camila Rocha', email: 'camila@email.com', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop', role: 'moderator', plan: 'premium_individual', status: 'active', joinedDate: '2024-01-10' },
-  { id: 'u11', name: 'Admin SoundFlow', email: 'admin@soundflow.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', role: 'admin', plan: 'premium_individual', status: 'active', joinedDate: '2023-12-01' },
+  { id: 'u11', name: 'Admin SpotiPlay', email: 'admin@soundflow.com', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', role: 'admin', plan: 'premium_individual', status: 'active', joinedDate: '2023-12-01' },
   { id: 'u12', name: 'Fernanda Lima', email: 'fernanda@email.com', avatar: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop', role: 'free', plan: 'free', status: 'active', joinedDate: '2024-09-12' },
 ];
 
@@ -230,7 +230,7 @@ const mockSubscriptions: MockSubscription[] = [
   { id: 'sub6', userId: 'u7', userName: 'Rafael Torres', plan: 'Premium Estudante', price: 11.95, status: 'active', billingMethod: 'PIX', nextBilling: '2025-07-10' },
   { id: 'sub7', userId: 'u8', userName: 'Isabela Ferreira', plan: 'Premium Individual', price: 21.90, status: 'past_due', billingMethod: 'Cartão', nextBilling: '2025-06-20' },
   { id: 'sub8', userId: 'u10', userName: 'Camila Rocha', plan: 'Premium Individual', price: 21.90, status: 'active', billingMethod: 'PIX', nextBilling: '2025-07-10' },
-  { id: 'sub9', userId: 'u11', userName: 'Admin SoundFlow', plan: 'Premium Individual', price: 21.90, status: 'active', billingMethod: 'Cartão', nextBilling: '2025-07-01' },
+  { id: 'sub9', userId: 'u11', userName: 'Admin SpotiPlay', plan: 'Premium Individual', price: 21.90, status: 'active', billingMethod: 'Cartão', nextBilling: '2025-07-01' },
   { id: 'sub10', userId: 'u12', userName: 'Fernanda Lima', plan: 'Premium Individual', price: 21.90, status: 'expired', billingMethod: 'PIX', nextBilling: '2025-05-01' },
 ];
 
@@ -245,13 +245,13 @@ const mockPayments: MockPayment[] = [
   { id: 'PAY008', userId: 'u1', userName: 'Lucas Mendes', amount: 21.90, method: 'PIX', status: 'confirmed', date: '2025-05-15' },
   { id: 'PAY009', userId: 'u2', userName: 'Marina Silva', amount: 39.90, method: 'Cartão de Crédito', status: 'confirmed', date: '2025-05-20' },
   { id: 'PAY010', userId: 'u6', userName: 'Capoeira Soul', amount: 21.90, method: 'Cartão de Crédito', status: 'refunded', date: '2025-05-01' },
-  { id: 'PAY011', userId: 'u11', userName: 'Admin SoundFlow', amount: 21.90, method: 'Cartão de Crédito', status: 'confirmed', date: '2025-06-01' },
+  { id: 'PAY011', userId: 'u11', userName: 'Admin SpotiPlay', amount: 21.90, method: 'Cartão de Crédito', status: 'confirmed', date: '2025-06-01' },
   { id: 'PAY012', userId: 'u12', userName: 'Fernanda Lima', amount: 21.90, method: 'PIX', status: 'pending', date: '2025-06-25' },
 ];
 
 const mockAdCampaigns: MockAdCampaign[] = [
   { id: 'ad1', name: 'Promo Verão 2025', type: 'audio', status: 'active', impressions: 125000, clicks: 3200, budget: 5000, spent: 3750, targetUrl: 'https://example.com/promo', duration: 30, frequency: 3 },
-  { id: 'ad2', name: 'Novo App SoundFlow', type: 'video', status: 'active', impressions: 89000, clicks: 2100, budget: 8000, spent: 4500, targetUrl: 'https://example.com/app', duration: 15, frequency: 5 },
+  { id: 'ad2', name: 'Novo App SpotiPlay', type: 'video', status: 'active', impressions: 89000, clicks: 2100, budget: 8000, spent: 4500, targetUrl: 'https://example.com/app', duration: 15, frequency: 5 },
   { id: 'ad3', name: 'Premium Duo Lançamento', type: 'banner', status: 'active', impressions: 230000, clicks: 5600, budget: 3000, spent: 2800, targetUrl: 'https://example.com/duo', duration: 0, frequency: 4 },
   { id: 'ad4', name: 'Black Friday 2024', type: 'audio', status: 'inactive', impressions: 450000, clicks: 12000, budget: 10000, spent: 10000, targetUrl: 'https://example.com/bf', duration: 30, frequency: 3 },
   { id: 'ad5', name: 'Podcast Original SF', type: 'video', status: 'inactive', impressions: 56000, clicks: 890, budget: 2000, spent: 1200, targetUrl: 'https://example.com/podcast', duration: 20, frequency: 6 },
@@ -353,7 +353,7 @@ function AdminSidebar({
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-white tracking-tight">SoundFlow</h1>
+            <h1 className="text-base font-bold text-white tracking-tight">SpotiPlay</h1>
             <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Admin Panel</p>
           </div>
         )}
@@ -414,7 +414,7 @@ function DashboardView() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white">Dashboard</h2>
-          <p className="text-sm text-gray-400 mt-1">Visão geral da plataforma SoundFlow</p>
+          <p className="text-sm text-gray-400 mt-1">Visão geral da plataforma SpotiPlay</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
@@ -1899,7 +1899,7 @@ function SettingsView() {
   };
 
   // Tab 3: Geral
-  const [platformName, setPlatformName] = useState('SoundFlow');
+  const [platformName, setPlatformName] = useState('SpotiPlay');
   const [platformUrl, setPlatformUrl] = useState('https://soundflow.com.br');
   const [supportEmail, setSupportEmail] = useState('suporte@soundflow.com.br');
   const [defaultPlan, setDefaultPlan] = useState('free');
@@ -1919,7 +1919,7 @@ function SettingsView() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white">Configurações</h2>
-        <p className="text-sm text-gray-400 mt-1">Configurar a plataforma SoundFlow</p>
+        <p className="text-sm text-gray-400 mt-1">Configurar a plataforma SpotiPlay</p>
       </div>
 
       <Tabs defaultValue="plans" className="space-y-4">

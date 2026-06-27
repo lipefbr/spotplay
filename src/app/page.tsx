@@ -47,7 +47,7 @@ const DEMO_USERS: Record<string, UserType> = {
   admin: {
     id: 'u_admin',
     email: 'admin@soundflow.com',
-    name: 'Admin SoundFlow',
+    name: 'Admin SpotiPlay',
     username: 'admin_soundflow',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
     role: 'admin',
@@ -249,9 +249,9 @@ function FullPlayer() {
 
 // ===== AD OVERLAY (free users - every 2 songs) =====
 const AD_MESSAGES = [
-  '🎧 SoundFlow Premium — Sem anúncios, sem interrupções!',
+  '🎧 SpotiPlay Premium — Sem anúncios, sem interrupções!',
   '🎶 Curta música sem limites — Assine o Premium!',
-  '⚡ Download offline + qualidade máxima — SoundFlow Premium',
+  '⚡ Download offline + qualidade máxima — SpotiPlay Premium',
   '🎵 Pule quantas músicas quiser — Upgrade Premium!',
 ];
 const AD_DURATION = 15; // seconds

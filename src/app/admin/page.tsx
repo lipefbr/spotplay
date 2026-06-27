@@ -51,7 +51,7 @@ export default function AdminPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500">
             <Music2 className="h-4 w-4 text-white" />
           </div>
-          <span className="text-lg font-bold text-white tracking-tight">SoundFlow Admin</span>
+          <span className="text-lg font-bold text-white tracking-tight">SpotiPlay Admin</span>
           <span className="hidden sm:inline text-sm text-amber-400 font-medium">Painel Administrativo</span>
         </div>
         <a

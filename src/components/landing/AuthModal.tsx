@@ -185,7 +185,7 @@ export default function AuthModal({ open, onOpenChange, mode, onDemoLogin, onLog
               </DialogTitle>
               <p className="text-center text-emerald-100/70 text-sm mt-1">
                 {activeTab === 'login'
-                  ? 'Entre na sua conta SoundFlow'
+                  ? 'Entre na sua conta SpotiPlay'
                   : 'Comece a ouvir milhões de músicas grátis'}
               </p>
             </DialogHeader>

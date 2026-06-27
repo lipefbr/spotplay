@@ -102,7 +102,7 @@ function SidebarContent({
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500">
           <Music2 className="h-5 w-5 text-white" />
         </div>
-        <span className="text-xl font-bold text-white tracking-tight">SoundFlow</span>
+        <span className="text-xl font-bold text-white tracking-tight">SpotiPlay</span>
       </div>
 
       {/* Scrollable nav items */}

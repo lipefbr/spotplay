@@ -154,42 +154,42 @@ export const mockArtists: ArtistType[] = [
 
 export const mockPlaylists: PlaylistType[] = [
   {
-    id: 'p1', userId: 'u0', userName: 'SoundFlow', name: 'Hits do Momento',
+    id: 'p1', userId: 'u0', userName: 'SpotiPlay', name: 'Hits do Momento',
     description: 'As músicas mais tocadas da semana',
     coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&h=300&fit=crop',
     isPublic: true, isCollaborative: false, playCount: 567890,
     songCount: 50, tags: ['hits', 'pop', 'brasil']
   },
   {
-    id: 'p2', userId: 'u0', userName: 'SoundFlow', name: 'Chill Brasil',
+    id: 'p2', userId: 'u0', userName: 'SpotiPlay', name: 'Chill Brasil',
     description: 'Relaxe com o melhor da música brasileira',
     coverUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=300&h=300&fit=crop',
     isPublic: true, isCollaborative: false, playCount: 345678,
     songCount: 35, tags: ['chill', 'relax', 'mpb']
   },
   {
-    id: 'p3', userId: 'u0', userName: 'SoundFlow', name: 'Treino Intenso',
+    id: 'p3', userId: 'u0', userName: 'SpotiPlay', name: 'Treino Intenso',
     description: 'Energia máxima para seu treino',
     coverUrl: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=300&h=300&fit=crop',
     isPublic: true, isCollaborative: false, playCount: 890123,
     songCount: 45, tags: ['treino', 'energia', 'funk']
   },
   {
-    id: 'p4', userId: 'u0', userName: 'SoundFlow', name: 'Sertanejo Top',
+    id: 'p4', userId: 'u0', userName: 'SpotiPlay', name: 'Sertanejo Top',
     description: 'O melhor do sertanejo universitário',
     coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&h=300&fit=crop',
     isPublic: true, isCollaborative: false, playCount: 1234567,
     songCount: 60, tags: ['sertanejo', 'brasil']
   },
   {
-    id: 'p5', userId: 'u0', userName: 'SoundFlow', name: 'Noite Eletrônica',
+    id: 'p5', userId: 'u0', userName: 'SpotiPlay', name: 'Noite Eletrônica',
     description: 'Beats para a noite',
     coverUrl: 'https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=300&h=300&fit=crop',
     isPublic: true, isCollaborative: false, playCount: 456789,
     songCount: 40, tags: ['eletrônica', 'night', 'dance']
   },
   {
-    id: 'p6', userId: 'u0', userName: 'SoundFlow', name: 'Acústico Café',
+    id: 'p6', userId: 'u0', userName: 'SpotiPlay', name: 'Acústico Café',
     description: 'Música acústica para o café da manhã',
     coverUrl: 'https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=300&h=300&fit=crop',
     isPublic: true, isCollaborative: false, playCount: 234567,

@@ -19,7 +19,7 @@ export async function GET() {
       await db.user.create({
         data: {
           email: 'admin@soundflow.com',
-          name: 'Admin SoundFlow',
+          name: 'Admin SpotiPlay',
           username: 'admin_soundflow',
           password: adminPassword,
           role: 'admin',

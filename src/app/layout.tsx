@@ -9,10 +9,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SoundFlow - Sua música, sem limites",
-  description: "Plataforma de streaming de música com milhões de músicas, podcasts e lives. Ouça sem limites com o SoundFlow Premium.",
-  keywords: ["SoundFlow", "streaming", "música", "podcasts", "lives", "Premium", "BR"],
-  authors: [{ name: "SoundFlow" }],
+  title: "SpotiPlay - Sua música, sem limites",
+  description: "Plataforma de streaming de música com milhões de músicas, podcasts e lives. Ouça sem limites com o SpotiPlay Premium.",
+  keywords: ["SpotiPlay", "streaming", "música", "podcasts", "lives", "Premium", "BR"],
+  authors: [{ name: "SpotiPlay" }],
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
@@ -20,9 +20,9 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.svg',
   },
   openGraph: {
-    title: "SoundFlow - Sua música, sem limites",
+    title: "SpotiPlay - Sua música, sem limites",
     description: "Ouça milhões de músicas, podcasts e transmissões ao vivo",
-    siteName: "SoundFlow",
+    siteName: "SpotiPlay",
     type: "website",
   },
 };

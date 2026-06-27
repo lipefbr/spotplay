@@ -170,7 +170,7 @@ export default function PremiumView() {
             <Badge className="bg-yellow-400/20 text-yellow-300 border-yellow-400/30">Premium</Badge>
           </div>
           <h1 className="text-3xl font-bold text-white mb-3 lg:text-4xl">
-            SoundFlow Premium
+            SpotiPlay Premium
           </h1>
           <p className="text-emerald-100 text-lg mb-6 max-w-xl">
             Ouça sem limites. Sem anúncios, download offline, qualidade máxima e muito mais.

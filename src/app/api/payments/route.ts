@@ -75,7 +75,7 @@ export async function POST(request: Request) {
         customer: customer.id,
         billingType: billingTypeMap[method] as 'PIX' | 'CREDIT_CARD' | 'BOLETO',
         value: amount,
-        description: description || 'SoundFlow Payment',
+        description: description || 'SpotiPlay Payment',
         dueDate: dueDate.toISOString().split('T')[0],
       });
 

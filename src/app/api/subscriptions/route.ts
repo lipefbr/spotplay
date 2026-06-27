@@ -10,10 +10,10 @@ import {
 
 // Plan pricing map — matches subscriptionPlans in mock-data
 const PLAN_PRICES: Record<string, { value: number; cycle: 'MONTHLY' | 'YEARLY'; description: string }> = {
-  premium_individual: { value: 21.90, cycle: 'MONTHLY', description: 'SoundFlow Premium Individual' },
-  premium_duo: { value: 29.90, cycle: 'MONTHLY', description: 'SoundFlow Premium Duo' },
-  premium_familia: { value: 39.90, cycle: 'MONTHLY', description: 'SoundFlow Premium Família' },
-  premium_estudante: { value: 11.95, cycle: 'MONTHLY', description: 'SoundFlow Premium Estudante' },
+  premium_individual: { value: 21.90, cycle: 'MONTHLY', description: 'SpotiPlay Premium Individual' },
+  premium_duo: { value: 29.90, cycle: 'MONTHLY', description: 'SpotiPlay Premium Duo' },
+  premium_familia: { value: 39.90, cycle: 'MONTHLY', description: 'SpotiPlay Premium Família' },
+  premium_estudante: { value: 11.95, cycle: 'MONTHLY', description: 'SpotiPlay Premium Estudante' },
 };
 
 // GET /api/subscriptions - Get current user subscription

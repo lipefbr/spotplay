@@ -464,7 +464,7 @@ export default function CreatorPanel() {
         </div>
         {!sidebarCollapsed && (
           <div className="overflow-hidden">
-            <h1 className="text-white font-bold text-lg leading-tight">SoundFlow</h1>
+            <h1 className="text-white font-bold text-lg leading-tight">SpotiPlay</h1>
             <p className="text-gray-400 text-xs">Creator Studio</p>
           </div>
         )}

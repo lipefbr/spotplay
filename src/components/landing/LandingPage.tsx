@@ -62,7 +62,7 @@ function NavBar({ onGetStarted, onLogin }: { onGetStarted: () => void; onLogin?:
             <div className="w-9 h-9 bg-gradient-to-br from-emerald-400 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
               <Music className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-white tracking-tight">SoundFlow</span>
+            <span className="text-xl font-bold text-white tracking-tight">SpotiPlay</span>
           </div>
 
           {/* Desktop Links */}
@@ -281,7 +281,7 @@ function HeroSection({ onGetStarted }: { onGetStarted: () => void }) {
           <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-emerald-500/10 border border-white/10">
             <img
               src="https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&h=600&fit=crop"
-              alt="SoundFlow Player"
+              alt="SpotiPlay Player"
               className="w-full h-auto object-cover"
             />
             {/* Overlay player */}
@@ -640,7 +640,7 @@ function CreatorSection({ onGetStarted }: { onGetStarted: () => void }) {
               </span>
             </h2>
             <p className="mt-4 text-gray-400 text-lg leading-relaxed">
-              Junte-se a milhares de artistas independentes que já estão no SoundFlow.
+              Junte-se a milhares de artistas independentes que já estão no SpotiPlay.
               Publique suas músicas, faça lives, crie podcasts e ganhe dinheiro com
               sua arte.
             </p>
@@ -676,7 +676,7 @@ function CreatorSection({ onGetStarted }: { onGetStarted: () => void }) {
               <div className="relative rounded-2xl overflow-hidden border border-white/10">
                 <img
                   src="https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=600&h=500&fit=crop"
-                  alt="Criador SoundFlow"
+                  alt="Criador SpotiPlay"
                   className="w-full h-auto object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-950/80 to-transparent" />
@@ -718,7 +718,7 @@ function TestimonialsSection() {
       name: 'Ana Beatriz',
       role: 'Ouvinte Premium',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
-      text: 'O SoundFlow mudou minha relação com música. As recomendações com IA são incríveis, sempre acertam!',
+      text: 'O SpotiPlay mudou minha relação com música. As recomendações com IA são incríveis, sempre acertam!',
       rating: 5,
     },
     {
@@ -732,7 +732,7 @@ function TestimonialsSection() {
       name: 'Marina Oliveira',
       role: 'Criadora',
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-      text: 'Como artista independente, o SoundFlow me deu visibilidade que nunca tive. Recebo por PIX direitinho!',
+      text: 'Como artista independente, o SpotiPlay me deu visibilidade que nunca tive. Recebo por PIX direitinho!',
       rating: 5,
     },
     {
@@ -914,7 +914,7 @@ function Footer() {
               <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-green-600 rounded-xl flex items-center justify-center">
                 <Music className="w-4 h-4 text-white" />
               </div>
-              <span className="text-lg font-bold text-white">SoundFlow</span>
+              <span className="text-lg font-bold text-white">SpotiPlay</span>
             </div>
             <p className="text-gray-500 text-sm leading-relaxed">
               A plataforma de streaming que conecta a música brasileira ao mundo.
@@ -964,7 +964,7 @@ function Footer() {
 
         <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-gray-600 text-sm">
-            &copy; {new Date().getFullYear()} SoundFlow. Todos os direitos reservados.
+            &copy; {new Date().getFullYear()} SpotiPlay. Todos os direitos reservados.
           </p>
           <div className="flex items-center gap-4 text-gray-600 text-xs">
             <span>Pagamentos Online</span>
